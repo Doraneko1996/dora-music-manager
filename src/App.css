@@ -1,0 +1,108 @@
+@import "tailwindcss";
+
+@theme {
+  --color-background: var(--zinc-950);
+  --color-foreground: var(--zinc-100);
+
+  --color-card: var(--zinc-900);
+  --color-card-foreground: var(--zinc-100);
+
+  --color-popover: var(--zinc-950);
+  --color-popover-foreground: var(--zinc-100);
+
+  --color-primary: var(--indigo-500);
+  --color-primary-foreground: var(--white);
+
+  --color-secondary: var(--zinc-800);
+  --color-secondary-foreground: var(--zinc-100);
+
+  --color-muted: var(--zinc-900);
+  --color-muted-foreground: var(--zinc-400);
+
+  --color-accent: var(--zinc-800);
+  --color-accent-foreground: var(--zinc-100);
+
+  --color-destructive: var(--red-500);
+  --color-destructive-foreground: var(--zinc-100);
+
+  --color-border: color-mix(in srgb, var(--color-white) 10%, transparent);
+  --color-input: color-mix(in srgb, var(--color-white) 10%, transparent);
+  --color-ring: var(--indigo-500);
+
+  --radius-lg: var(--radius-md);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+}
+
+@layer base {
+  :root {
+    --radius: 0.75rem;
+    color-scheme: dark;
+  }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: Inter, Avenir, Helvetica, Arial, sans-serif;
+  }
+
+  * {
+    border-color: var(--color-border);
+  }
+}
+
+@layer components {
+  /* Global Row Styles */
+  .row-hover-bg {
+    @apply border-transparent hover:bg-white/5 hover:border-white/5;
+  }
+  .row-active-bg {
+    @apply border-indigo-500/30 bg-indigo-500/10 hover:bg-indigo-500/20;
+  }
+  .row-gradient-overlay {
+    @apply absolute inset-0 bg-gradient-to-r from-indigo-500/0 to-indigo-500/15 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none;
+  }
+
+  .btn-gradient-brand {
+    @apply bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 !text-white !font-bold shadow-lg shadow-indigo-500/20 border-0 transition-all;
+  }
+  .btn-gradient-primary {
+    @apply bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 !text-white !font-bold shadow-lg shadow-blue-500/20 border-0 transition-all;
+  }
+  .btn-gradient-success {
+    @apply bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 !text-white !font-bold shadow-lg shadow-emerald-500/20 border-0 transition-all;
+  }
+  .btn-gradient-destructive {
+    @apply bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 !text-white !font-bold shadow-lg shadow-red-600/20 border-0 transition-all;
+  }
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 16px;
+  height: 16px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.25);
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.4);
+}
+
+.custom-scrollbar::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
