@@ -70,7 +70,7 @@ export const TrackList: React.FC<TrackListProps> = ({ files, selectedEntityName,
                     />
                     <TruncatedTooltip 
                       text={highlightArtist(f.artist || 'Unknown')} 
-                      fullText={f.artist || 'Unknown'}
+                      fullText={highlightArtist(f.artist || 'Unknown')}
                       className="text-[11px] text-zinc-500 truncate mt-0.5" 
                     />
                   </div>

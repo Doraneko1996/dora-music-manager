@@ -1,7 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { Tooltip, TooltipContent, TooltipTrigger } from './tooltip';
 
-export const TruncatedTooltip: React.FC<{ text: React.ReactNode, fullText: string, className?: string }> = ({ text, fullText, className }) => {
+export const TruncatedTooltip: React.FC<{ text: React.ReactNode, fullText: React.ReactNode, className?: string }> = ({ text, fullText, className }) => {
   const textRef = useRef<HTMLDivElement>(null);
   const [isOpen, setIsOpen] = useState(false);
 
@@ -24,9 +24,9 @@ export const TruncatedTooltip: React.FC<{ text: React.ReactNode, fullText: strin
           {text}
         </div>
       </TooltipTrigger>
-      <TooltipContent 
-        side="bottom" 
-        align="start" 
+      <TooltipContent
+        side="bottom"
+        align="start"
         sideOffset={4}
         collisionPadding={24}
         className="max-w-none whitespace-nowrap"

@@ -1,4 +1,5 @@
 import React, { useRef, useMemo, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import {
   useReactTable,
   getCoreRowModel,
@@ -784,11 +785,14 @@ export const DataGrid: React.FC = () => {
             })}
           </div>
         </div>
-        <div
-          ref={tooltipRef}
-          className="fixed z-[100] px-3 py-1.5 text-xs font-medium rounded-md shadow-md backdrop-blur-xl bg-white/70 text-zinc-800 dark:bg-zinc-800/70 dark:text-white/80 border border-black/10 dark:border-white/10 pointer-events-none"
-          style={{ display: 'none' }}
-        />
+        {typeof document !== 'undefined' && createPortal(
+          <div
+            ref={tooltipRef}
+            className="fixed z-[100] px-3 py-1.5 text-xs font-medium rounded-md shadow-md backdrop-blur-xl bg-white/70 text-zinc-800 dark:bg-zinc-800/70 dark:text-white/80 border border-black/10 dark:border-white/10 pointer-events-none"
+            style={{ display: 'none' }}
+          />,
+          document.body
+        )}
       </div>
     </div>
   );
