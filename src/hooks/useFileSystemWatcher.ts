@@ -76,6 +76,9 @@ export function useFileSystemWatcher(directoryPath: string) {
         const fn = await watchImmediate(
           directoryPath,
           (event) => {
+            // Bỏ qua sự kiện nếu ứng dụng đang quét toàn bộ thư mục (Tránh 2 loading cùng lúc)
+            if (useAudioStore.getState().isScanning) return;
+
             // Lập tức khóa UI ngay khi có sự kiện (trước khi chờ debounce)
             useAudioStore.getState().setIsSyncing(true);
             
