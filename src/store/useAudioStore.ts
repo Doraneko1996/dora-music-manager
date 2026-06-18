@@ -36,6 +36,7 @@ interface AudioStoreState {
   selectedFiles: string[];
   directoryPath: string;
   isScanning: boolean;
+  isSyncing: boolean;
   isEditing: boolean;
   activeTab: string;
   selectedEntityName: string | null;
@@ -52,6 +53,7 @@ interface AudioStoreState {
   setSelectedFiles: (files: string[]) => void;
   setDirectoryPath: (path: string) => void;
   setIsScanning: (scanning: boolean) => void;
+  setIsSyncing: (syncing: boolean) => void;
   setIsEditing: (editing: boolean) => void;
   setActiveTab: (tab: string) => void;
   setSelectedEntityName: (name: string | null) => void;
@@ -64,6 +66,7 @@ interface AudioStoreState {
   applyFilenamesToTitles: () => Promise<void>;
   clearMetadata: () => Promise<void>;
   refreshData: () => Promise<void>;
+  syncFileSystemChanges: (removedPaths: string[], updatedFiles: AudioMetadata[], partialAggregated: AggregatedMetadata | null) => void;
 }
 
 export const useAudioStore = create<AudioStoreState>((set, get) => ({
@@ -72,6 +75,7 @@ export const useAudioStore = create<AudioStoreState>((set, get) => ({
   selectedFiles: [],
   directoryPath: '',
   isScanning: false,
+  isSyncing: false,
   isEditing: false,
   activeTab: 'tracks',
   selectedEntityName: null,
@@ -87,6 +91,7 @@ export const useAudioStore = create<AudioStoreState>((set, get) => ({
   setSelectedFiles: (files) => set({ selectedFiles: files }),
   setDirectoryPath: (path) => set({ directoryPath: path }),
   setIsScanning: (scanning) => set({ isScanning: scanning }),
+  setIsSyncing: (syncing) => set({ isSyncing: syncing }),
   setIsEditing: (editing) => set({ isEditing: editing }),
   setActiveTab: (tab) => set({ 
     activeTab: tab,
@@ -298,5 +303,100 @@ export const useAudioStore = create<AudioStoreState>((set, get) => ({
     } finally {
       set({ isScanning: false });
     }
+  },
+
+  syncFileSystemChanges: (removedPaths, updatedFiles, partialAggregated) => {
+    const state = get();
+    let hasChanges = false;
+    let newMusicFiles = [...state.musicFiles];
+    let newSelectedFiles = [...state.selectedFiles];
+
+    // Normalize paths to prevent slash/case mismatch on Windows
+    const normalize = (p: string) => p.replace(/\\/g, '/').toLowerCase();
+
+    // Remove deleted files
+    if (removedPaths.length > 0) {
+      const initialLength = newMusicFiles.length;
+      const normalizedRemoved = removedPaths.map(normalize);
+      newMusicFiles = newMusicFiles.filter(f => !normalizedRemoved.includes(normalize(f.file_path)));
+      newSelectedFiles = newSelectedFiles.filter(p => !normalizedRemoved.includes(normalize(p)));
+      if (newMusicFiles.length !== initialLength) hasChanges = true;
+    }
+
+    // Upsert modified/added files
+    if (updatedFiles.length > 0) {
+      hasChanges = true;
+      updatedFiles.forEach(updatedFile => {
+        const idx = newMusicFiles.findIndex(f => normalize(f.file_path) === normalize(updatedFile.file_path));
+        if (idx !== -1) {
+          newMusicFiles[idx] = updatedFile;
+        } else {
+          newMusicFiles.push(updatedFile);
+        }
+      });
+    }
+
+    if (!hasChanges) return;
+
+    // Recompute Aggregated Data locally
+    const artistsSet = new Set<string>();
+    const genresSet = new Set<string>();
+    const uniqueAlbums = new Set<string>();
+
+    const reFeat = /\s+(?:ft\.|feat\.|featuring)\s+/i;
+
+    newMusicFiles.forEach(file => {
+      // Artists
+      if (file.artist) {
+        const parts = file.artist.split(reFeat);
+        parts.forEach(part => {
+          part.split(',').forEach(artist => {
+            const trimmed = artist.trim();
+            if (trimmed) artistsSet.add(trimmed);
+          });
+        });
+      }
+      // Genres
+      if (file.genre) {
+        genresSet.add(file.genre.trim());
+      }
+      // Albums
+      if (file.album) {
+        uniqueAlbums.add(file.album);
+      }
+    });
+
+    const artists = Array.from(artistsSet).sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
+    const genres = Array.from(genresSet).sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
+
+    // Map old covers and new covers
+    const coverMap = new Map<string, string | null>();
+    if (state.aggregatedData?.albums) {
+      state.aggregatedData.albums.forEach(a => coverMap.set(a.album_name, a.cover_path));
+    }
+    if (partialAggregated?.albums) {
+      partialAggregated.albums.forEach(a => coverMap.set(a.album_name, a.cover_path));
+    }
+
+    const albums: AlbumInfo[] = Array.from(uniqueAlbums).map(album_name => ({
+      album_name,
+      cover_path: coverMap.get(album_name) || null
+    })).sort((a, b) => a.album_name.toLowerCase().localeCompare(b.album_name.toLowerCase()));
+
+    const stateUpdates: any = {
+      musicFiles: newMusicFiles,
+      aggregatedData: { artists, albums, genres }
+    };
+
+    if (newSelectedFiles.length !== state.selectedFiles.length) {
+      stateUpdates.selectedFiles = newSelectedFiles;
+      if (newSelectedFiles.length === 0) {
+        stateUpdates.isEditing = false;
+        stateUpdates.pendingMetadata = {};
+        stateUpdates.pendingArtworkPath = null;
+      }
+    }
+
+    set(stateUpdates);
   }
 }));

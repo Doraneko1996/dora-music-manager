@@ -1,6 +1,6 @@
 import React from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
-import { FolderOpen } from 'lucide-react';
+import { FolderOpen, Loader2 } from 'lucide-react';
 import { Button } from './ui/button';
 import { invoke } from '@tauri-apps/api/core';
 import { open } from '@tauri-apps/plugin-dialog';
@@ -10,13 +10,17 @@ import { LibraryView } from './LibraryView';
 import { EditForm } from './EditForm';
 import { Toaster as CustomToaster } from './ui/sonner';
 import { FolderStatsPopup } from './FolderStatsPopup';
+import { useFileSystemWatcher } from '../hooks/useFileSystemWatcher';
+import { LockOverlay } from './ui/lock-overlay';
 
 export const Layout: React.FC = () => {
   const {
     musicFiles,
     directoryPath, setDirectoryPath,
-    setMusicFiles, setAggregatedData, isScanning, setIsScanning
+    setMusicFiles, setAggregatedData, isScanning, setIsScanning, isSyncing
   } = useAudioStore();
+
+  useFileSystemWatcher(directoryPath);
 
   const handleOpenFolder = async () => {
     try {
@@ -104,6 +108,15 @@ export const Layout: React.FC = () => {
         </PanelGroup>
       </div>
       <CustomToaster />
+
+      {/* Sync Lock Overlay */}
+      <LockOverlay 
+        isLocked={isSyncing}
+        title="Đang đồng bộ..."
+        description="Đang xử lý thay đổi từ File System, vui lòng đợi."
+        icon={<Loader2 className="w-12 h-12 animate-spin" />}
+        className="fixed inset-0 z-[9999] bg-black/40 backdrop-blur-[2px]"
+      />
     </div>
   );
 };
