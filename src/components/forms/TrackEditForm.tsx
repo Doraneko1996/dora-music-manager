@@ -22,6 +22,7 @@ import {
   DialogTrigger,
   DialogClose,
 } from "../ui/dialog";
+import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
 
 export const TrackEditForm: React.FC = () => {
   const {
@@ -196,14 +197,18 @@ export const TrackEditForm: React.FC = () => {
               render={({ field }) => (
                 <FormItem>
                   <FormControl>
-                    <Input
-                      {...field}
-                      id="title"
-                      readOnly={!isEditing}
-                      placeholder={isEditing ? "Nhập tiêu đề..." : "Trống"}
-                      className={cn(inputClass, "truncate")}
-                      title={field.value}
-                    />
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Input
+                          {...field}
+                          id="title"
+                          readOnly={!isEditing}
+                          placeholder={isEditing ? "Nhập tiêu đề..." : "Trống"}
+                          className={cn(inputClass, "truncate")}
+                        />
+                      </TooltipTrigger>
+                      {field.value && <TooltipContent>{field.value}</TooltipContent>}
+                    </Tooltip>
                   </FormControl>
                 </FormItem>
               )}
@@ -218,14 +223,18 @@ export const TrackEditForm: React.FC = () => {
               render={({ field }) => (
                 <FormItem>
                   <FormControl>
-                    <Input
-                      {...field}
-                      id="artist"
-                      readOnly={!isEditing}
-                      placeholder={isEditing ? "Nhập tên nghệ sĩ..." : "Trống"}
-                      className={cn(inputClass, "truncate")}
-                      title={field.value}
-                    />
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Input
+                          {...field}
+                          id="artist"
+                          readOnly={!isEditing}
+                          placeholder={isEditing ? "Nhập tên nghệ sĩ..." : "Trống"}
+                          className={cn(inputClass, "truncate")}
+                        />
+                      </TooltipTrigger>
+                      {field.value && <TooltipContent>{field.value}</TooltipContent>}
+                    </Tooltip>
                   </FormControl>
                 </FormItem>
               )}
@@ -240,14 +249,18 @@ export const TrackEditForm: React.FC = () => {
               render={({ field }) => (
                 <FormItem>
                   <FormControl>
-                    <Input
-                      {...field}
-                      id="album"
-                      readOnly={!isEditing}
-                      placeholder={isEditing ? "Nhập tên album..." : "Trống"}
-                      className={cn(inputClass, "truncate")}
-                      title={field.value}
-                    />
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Input
+                          {...field}
+                          id="album"
+                          readOnly={!isEditing}
+                          placeholder={isEditing ? "Nhập tên album..." : "Trống"}
+                          className={cn(inputClass, "truncate")}
+                        />
+                      </TooltipTrigger>
+                      {field.value && <TooltipContent>{field.value}</TooltipContent>}
+                    </Tooltip>
                   </FormControl>
                 </FormItem>
               )}
@@ -284,14 +297,18 @@ export const TrackEditForm: React.FC = () => {
                 render={({ field }) => (
                   <FormItem>
                     <FormControl>
-                      <Input
-                        {...field}
-                        id="genre"
-                        readOnly={!isEditing}
-                        placeholder={isEditing ? "Thể loại..." : "Trống"}
-                        className={cn(inputClass, "truncate")}
-                        title={field.value}
-                      />
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Input
+                            {...field}
+                            id="genre"
+                            readOnly={!isEditing}
+                            placeholder={isEditing ? "Thể loại..." : "Trống"}
+                            className={cn(inputClass, "truncate")}
+                          />
+                        </TooltipTrigger>
+                        {field.value && <TooltipContent>{field.value}</TooltipContent>}
+                      </Tooltip>
                     </FormControl>
                   </FormItem>
                 )}

@@ -1,6 +1,7 @@
 import React from 'react';
 import { useAudioStore } from '../store/useAudioStore';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
+import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 import { Input } from './ui/input';
 import { Button } from './ui/button';
 import { LockOverlay } from './ui/lock-overlay';
@@ -94,16 +95,20 @@ export const LibraryView: React.FC = () => {
               />
             </div>
 
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={refreshData}
-              disabled={isScanning || !directoryPath}
-              className="h-[38px] w-[38px] bg-zinc-950/80 border-white/10 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/80 rounded-lg shadow-lg shadow-black/20"
-              title="Làm mới dữ liệu"
-            >
-              <RefreshCw size={16} className={isScanning ? "animate-spin text-indigo-400" : ""} />
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={refreshData}
+                  disabled={isScanning || !directoryPath}
+                  className="h-[38px] w-[38px] bg-zinc-950/80 border-white/10 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/80 rounded-lg shadow-lg shadow-black/20"
+                >
+                  <RefreshCw size={16} className={isScanning ? "animate-spin text-indigo-400" : ""} />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Làm mới dữ liệu</TooltipContent>
+            </Tooltip>
 
           {/* Grid Size Control (Only show when on albums tab) */}
           {activeTab === 'albums' && (
@@ -170,9 +175,14 @@ export const LibraryView: React.FC = () => {
                       )}
                       <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
                     </div>
-                    <h3 className={`w-full font-semibold text-[14px] truncate leading-tight transition-colors ${isSelected ? 'text-indigo-400' : 'text-zinc-200 group-hover:text-white'}`} title={album.album_name}>
-                      {album.album_name}
-                    </h3>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <h3 className={`w-full font-semibold text-[14px] truncate leading-tight transition-colors ${isSelected ? 'text-indigo-400' : 'text-zinc-200 group-hover:text-white'}`}>
+                          {album.album_name}
+                        </h3>
+                      </TooltipTrigger>
+                      <TooltipContent>{album.album_name}</TooltipContent>
+                    </Tooltip>
                   </div>
                 );
               })}
@@ -216,7 +226,12 @@ export const LibraryView: React.FC = () => {
                      <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 shadow-sm border transition-colors ${isSelected ? 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30' : 'bg-zinc-800 text-zinc-400 border-white/5'}`}>
                        <Users size={18} />
                      </div>
-                     <span className={`font-medium truncate flex-1 transition-colors ${isSelected ? 'text-indigo-400' : 'text-zinc-200 group-hover:text-white'}`} title={artist}>{artist}</span>
+                     <Tooltip>
+                       <TooltipTrigger asChild>
+                         <span className={`font-medium truncate flex-1 transition-colors ${isSelected ? 'text-indigo-400' : 'text-zinc-200 group-hover:text-white'}`}>{artist}</span>
+                       </TooltipTrigger>
+                       <TooltipContent>{artist}</TooltipContent>
+                     </Tooltip>
                    </div>
                  );
                })}

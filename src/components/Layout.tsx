@@ -1,6 +1,7 @@
 import React from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import { FolderOpen, X } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 import { Button } from './ui/button';
 import { invoke } from '@tauri-apps/api/core';
 import { open } from '@tauri-apps/plugin-dialog';
@@ -65,16 +66,25 @@ export const Layout: React.FC = () => {
           {directoryPath && (
             <div className="group flex items-center gap-2 bg-zinc-900/80 backdrop-blur-3xl hover:bg-indigo-500/10 border border-white/10 hover:border-indigo-500/50 px-4 py-1.5 rounded-full shadow-[0_0_20px_rgba(0,0,0,0.3)] hover:shadow-[0_0_20px_rgba(99,102,241,0.25)] transition-all duration-300">
               <FolderOpen size={14} className="text-zinc-400 group-hover:text-indigo-400 transition-colors duration-300" />
-              <span className="text-[13px] font-medium text-zinc-300 group-hover:text-indigo-200 truncate max-w-[250px] transition-colors duration-300" title={directoryPath}>
-                {directoryPath}
-              </span>
-              <button
-                onClick={handleCloseFolder}
-                className="ml-2 text-zinc-500 hover:text-red-400 hover:bg-red-500/20 rounded-full p-1 transition-all"
-                title="Đóng thư mục"
-              >
-                <X size={12} strokeWidth={3} />
-              </button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="text-[13px] font-medium text-zinc-300 group-hover:text-indigo-200 truncate max-w-[250px] transition-colors duration-300">
+                    {directoryPath}
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>{directoryPath}</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={handleCloseFolder}
+                    className="ml-2 text-zinc-500 hover:text-red-400 hover:bg-red-500/20 rounded-full p-1 transition-all"
+                  >
+                    <X size={12} strokeWidth={3} />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>Đóng thư mục</TooltipContent>
+              </Tooltip>
             </div>
           )}
         </div>

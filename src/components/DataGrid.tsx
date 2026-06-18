@@ -47,11 +47,77 @@ import { Checkbox } from './ui/checkbox';
 export const DataGrid: React.FC = () => {
   const { musicFiles, selectedFiles, setSelectedFiles, isScanning, isEditing, directoryPath, searchQuery } = useAudioStore();
   const tableContainerRef = useRef<HTMLDivElement>(null);
+  const tooltipRef = useRef<HTMLDivElement>(null);
+  const tooltipTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    const container = tableContainerRef.current;
+    if (!container) return;
+
+    const handleMouseOver = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      const tooltipEl = target.closest('[data-custom-tooltip]');
+
+      if (tooltipEl) {
+        const text = tooltipEl.getAttribute('data-custom-tooltip');
+        if (text) {
+          if (tooltipTimeoutRef.current) clearTimeout(tooltipTimeoutRef.current);
+          tooltipTimeoutRef.current = setTimeout(() => {
+            if (tooltipRef.current) {
+              const rect = tooltipEl.getBoundingClientRect();
+              tooltipRef.current.textContent = text;
+              tooltipRef.current.style.display = 'block';
+
+              const tooltipRect = tooltipRef.current.getBoundingClientRect();
+              let left = rect.left + rect.width / 2 - tooltipRect.width / 2;
+              let top = rect.bottom + 6;
+
+              if (left < 10) left = 10;
+              if (left + tooltipRect.width > window.innerWidth - 10) {
+                left = window.innerWidth - tooltipRect.width - 10;
+              }
+              if (top + tooltipRect.height > window.innerHeight - 10) {
+                top = rect.top - tooltipRect.height - 6;
+              }
+
+              tooltipRef.current.style.left = `${left}px`;
+              tooltipRef.current.style.top = `${top}px`;
+            }
+          }, 400);
+        }
+      }
+    };
+
+    const handleMouseOut = () => {
+      if (tooltipTimeoutRef.current) clearTimeout(tooltipTimeoutRef.current);
+      if (tooltipRef.current) {
+        tooltipRef.current.style.display = 'none';
+      }
+    };
+
+    const handleScroll = () => {
+      if (tooltipTimeoutRef.current) clearTimeout(tooltipTimeoutRef.current);
+      if (tooltipRef.current) {
+        tooltipRef.current.style.display = 'none';
+      }
+    };
+
+    container.addEventListener('mouseover', handleMouseOver);
+    container.addEventListener('mouseout', handleMouseOut);
+    container.addEventListener('scroll', handleScroll);
+
+    return () => {
+      container.removeEventListener('mouseover', handleMouseOver);
+      container.removeEventListener('mouseout', handleMouseOut);
+      container.removeEventListener('scroll', handleScroll);
+      if (tooltipTimeoutRef.current) clearTimeout(tooltipTimeoutRef.current);
+    };
+  }, []);
 
   const filteredMusicFiles = useMemo(() => {
     if (!searchQuery) return musicFiles;
     const lowerQuery = searchQuery.toLowerCase();
-    return musicFiles.filter(file => 
+    return musicFiles.filter(file =>
       file.file_name?.toLowerCase().includes(lowerQuery) ||
       file.title?.toLowerCase().includes(lowerQuery) ||
       file.artist?.toLowerCase().includes(lowerQuery) ||
@@ -104,7 +170,7 @@ export const DataGrid: React.FC = () => {
           if (filterValue.emptyState === 'NOT_EMPTY' && isEmpty) return false;
 
           const track = row.original as AudioMetadata;
-          
+
           if (columnId === 'file_name') {
             const fileName = track.file_name || '';
             const lastDotIndex = fileName.lastIndexOf('.');
@@ -144,7 +210,7 @@ export const DataGrid: React.FC = () => {
 
         const value = row.getValue(columnId);
         const isEmpty = value === null || value === undefined || value === '' || value === 0;
-        
+
         if (filterValue === 'EMPTY') {
           return isEmpty;
         } else if (filterValue === 'NOT_EMPTY') {
@@ -158,10 +224,10 @@ export const DataGrid: React.FC = () => {
         header: () => {
           const isAllSelected = filteredMusicFiles.length > 0 && selectedFiles.length === filteredMusicFiles.length;
           const isSomeSelected = selectedFiles.length > 0 && selectedFiles.length < filteredMusicFiles.length;
-          
+
           return (
             <div className="flex items-center justify-center w-full">
-              <Checkbox 
+              <Checkbox
                 checked={isAllSelected ? true : isSomeSelected ? "indeterminate" : false}
                 onCheckedChange={(checked) => {
                   if (checked) {
@@ -179,10 +245,10 @@ export const DataGrid: React.FC = () => {
         cell: ({ row }) => {
           const filePath = row.original.file_path;
           const isSelected = selectedFiles.includes(filePath);
-          
+
           return (
             <div className="flex items-center justify-center w-full" onClick={e => e.stopPropagation()}>
-              <Checkbox 
+              <Checkbox
                 checked={isSelected}
                 onCheckedChange={(checked) => {
                   if (isEditing) return;
@@ -205,10 +271,10 @@ export const DataGrid: React.FC = () => {
 
       return [
         selectColumn,
-        { 
-          accessorKey: 'file_name', 
-          header: 'File Name', 
-          size: calcSize(maxLen.file_name, 150, 400), 
+        {
+          accessorKey: 'file_name',
+          header: 'File Name',
+          size: calcSize(maxLen.file_name, 150, 400),
           filterFn: dataFilterFn,
           cell: ({ row }) => {
             const fileName = row.original.file_name;
@@ -220,7 +286,7 @@ export const DataGrid: React.FC = () => {
             return (
               <div className="flex items-center justify-between gap-2 max-w-full w-full">
                 <div className="truncate min-w-0 flex-1">
-                  <div title={fileName} className="truncate w-full">
+                  <div data-custom-tooltip={fileName} className="truncate w-full">
                     {baseName}
                   </div>
                 </div>
@@ -240,40 +306,40 @@ export const DataGrid: React.FC = () => {
             );
           }
         },
-        { 
-          accessorKey: 'title', 
-          header: 'Title', 
-          size: calcSize(maxLen.title, 100, 400), 
+        {
+          accessorKey: 'title',
+          header: 'Title',
+          size: calcSize(maxLen.title, 100, 400),
           filterFn: dataFilterFn,
-          cell: ({ row }) => <div title={row.original.title || ''} className="truncate">{row.original.title || ''}</div>
+          cell: ({ row }) => <div data-custom-tooltip={row.original.title || ''} className="truncate">{row.original.title || ''}</div>
         },
-        { 
-          accessorKey: 'artist', 
-          header: 'Artist', 
-          size: calcSize(maxLen.artist, 100, 300), 
+        {
+          accessorKey: 'artist',
+          header: 'Artist',
+          size: calcSize(maxLen.artist, 100, 300),
           filterFn: dataFilterFn,
-          cell: ({ row }) => <div title={row.original.artist || ''} className="truncate">{row.original.artist || ''}</div>
+          cell: ({ row }) => <div data-custom-tooltip={row.original.artist || ''} className="truncate">{row.original.artist || ''}</div>
         },
-        { 
-          accessorKey: 'album', 
-          header: 'Album', 
-          size: calcSize(maxLen.album, 100, 300), 
+        {
+          accessorKey: 'album',
+          header: 'Album',
+          size: calcSize(maxLen.album, 100, 300),
           filterFn: dataFilterFn,
-          cell: ({ row }) => <div title={row.original.album || ''} className="truncate">{row.original.album || ''}</div>
+          cell: ({ row }) => <div data-custom-tooltip={row.original.album || ''} className="truncate">{row.original.album || ''}</div>
         },
-        { 
-          accessorKey: 'genre', 
-          header: 'Genre', 
-          size: calcSize(maxLen.genre, 80, 200), 
+        {
+          accessorKey: 'genre',
+          header: 'Genre',
+          size: calcSize(maxLen.genre, 80, 200),
           filterFn: dataFilterFn,
-          cell: ({ row }) => <div title={row.original.genre || ''} className="truncate">{row.original.genre || ''}</div>
+          cell: ({ row }) => <div className="truncate">{row.original.genre || ''}</div>
         },
-        { 
-          accessorKey: 'year', 
-          header: 'Year', 
-          size: calcSize(maxLen.year, 60, 100), 
+        {
+          accessorKey: 'year',
+          header: 'Year',
+          size: calcSize(maxLen.year, 60, 100),
           filterFn: dataFilterFn,
-          cell: ({ row }) => <div title={row.original.year?.toString() || ''} className="truncate">{row.original.year?.toString() || ''}</div>
+          cell: ({ row }) => <div data-custom-tooltip={row.original.year?.toString() || ''} className="truncate">{row.original.year?.toString() || ''}</div>
         },
       ];
     },
@@ -366,361 +432,364 @@ export const DataGrid: React.FC = () => {
         className="overflow-auto text-sm w-full h-full custom-scrollbar"
       >
         <div style={{ height: `${rowVirtualizer.getTotalSize() + 48}px`, position: 'relative', minWidth: 'max-content' }}>
-        {/* Table Header */}
-        <div className="sticky top-0 z-20 h-12 bg-black/40 backdrop-blur-xl border-b border-white/10 flex text-left shadow-sm">
-          {table.getHeaderGroups().map(headerGroup => (
-            <div key={headerGroup.id} className="flex w-full h-full">
-              {headerGroup.headers.map(header => (
-                <div
-                  key={header.id}
-                  className={`py-2 flex items-center select-none text-[11px] font-bold uppercase tracking-widest text-indigo-400/80 transition-colors cursor-default border-r border-white/5 last:border-r-0 group hover:bg-white/5 ${header.id === 'select' ? 'px-1' : 'px-4'}`}
-                  style={{ width: header.getSize() }}
-                >
-                  <div className="flex-1 flex items-center justify-between w-full min-w-0">
-                    <div className={`flex items-center gap-2 min-w-0 flex-1 ${header.id === 'select' ? '' : 'mr-2'}`}>
-                      <div className={header.id === 'select' ? 'w-full flex justify-center items-center h-full' : 'truncate group-hover:text-indigo-300 transition-colors'}>
-                        {flexRender(header.column.columnDef.header, header.getContext())}
+          {/* Table Header */}
+          <div className="sticky top-0 z-20 h-12 bg-black/40 backdrop-blur-xl border-b border-white/10 flex text-left shadow-sm">
+            {table.getHeaderGroups().map(headerGroup => (
+              <div key={headerGroup.id} className="flex w-full h-full">
+                {headerGroup.headers.map(header => (
+                  <div
+                    key={header.id}
+                    className={`py-2 flex items-center select-none text-[11px] font-bold uppercase tracking-widest text-indigo-400/80 transition-colors cursor-default border-r border-white/5 last:border-r-0 group hover:bg-white/5 ${header.id === 'select' ? 'px-1' : 'px-4'}`}
+                    style={{ width: header.getSize() }}
+                  >
+                    <div className="flex-1 flex items-center justify-between w-full min-w-0">
+                      <div className={`flex items-center gap-2 min-w-0 flex-1 ${header.id === 'select' ? '' : 'mr-2'}`}>
+                        <div className={header.id === 'select' ? 'w-full flex justify-center items-center h-full' : 'truncate group-hover:text-indigo-300 transition-colors'}>
+                          {flexRender(header.column.columnDef.header, header.getContext())}
+                        </div>
+
                       </div>
 
+                      {header.id !== 'select' && (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button
+                              className={`p-1.5 shrink-0 rounded-md transition-all duration-300 outline-none focus:outline-none data-[state=open]:opacity-100 data-[state=open]:bg-indigo-500/20 data-[state=open]:text-indigo-300 ${header.column.getFilterValue() || header.column.getIsSorted()
+                                  ? 'bg-amber-500/20 text-amber-400 opacity-100 shadow-[0_0_12px_rgba(245,158,11,0.3)] data-[state=open]:bg-amber-500/30 data-[state=open]:text-amber-300'
+                                  : 'opacity-40 group-hover:opacity-100 hover:bg-white/10 text-zinc-500 hover:text-zinc-300'
+                                }`}
+                              title="Tuỳ chọn cột"
+                            >
+                              {header.column.getIsSorted() === 'asc' ? <ArrowDownAZ size={13} strokeWidth={2.5} /> :
+                                header.column.getIsSorted() === 'desc' ? <ArrowUpZA size={13} strokeWidth={2.5} /> :
+                                  <Filter size={13} strokeWidth={2.5} />}
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-56 bg-zinc-950/95 border-white/10 backdrop-blur-xl shadow-xl shadow-black/80 text-zinc-300 p-1.5 rounded-xl z-50">
+
+                            <DropdownMenuLabel className="text-[10px] text-zinc-500 uppercase tracking-widest px-2 py-1.5 font-bold">
+                              Sắp xếp
+                            </DropdownMenuLabel>
+                            <DropdownMenuItem
+                              className="text-xs focus:bg-indigo-500/20 focus:text-indigo-300 cursor-pointer rounded-lg px-2 py-2"
+                              onClick={() => header.column.toggleSorting(false)}
+                            >
+                              <ArrowDownAZ size={14} className={`mr-2 ${header.column.getIsSorted() === 'asc' ? 'opacity-100 text-indigo-400' : 'opacity-70'}`} />
+                              <span className={header.column.getIsSorted() === 'asc' ? "text-indigo-400 font-bold" : ""}>Từ A đến Z</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="text-xs focus:bg-indigo-500/20 focus:text-indigo-300 cursor-pointer rounded-lg px-2 py-2"
+                              onClick={() => header.column.toggleSorting(true)}
+                            >
+                              <ArrowUpZA size={14} className={`mr-2 ${header.column.getIsSorted() === 'desc' ? 'opacity-100 text-indigo-400' : 'opacity-70'}`} />
+                              <span className={header.column.getIsSorted() === 'desc' ? "text-indigo-400 font-bold" : ""}>Từ Z đến A</span>
+                            </DropdownMenuItem>
+                            {header.column.getIsSorted() && (
+                              <DropdownMenuItem
+                                className="text-xs text-rose-400 focus:bg-rose-500/10 focus:text-rose-300 cursor-pointer rounded-lg px-2 py-2 mt-1"
+                                onClick={() => header.column.clearSorting()}
+                              >
+                                <X size={14} className="mr-2 opacity-70" />
+                                <span>Bỏ sắp xếp</span>
+                              </DropdownMenuItem>
+                            )}
+
+                            <DropdownMenuSeparator className="bg-white/5 my-1.5" />
+
+                            <DropdownMenuLabel className="text-[10px] text-zinc-500 uppercase tracking-widest px-2 py-1.5 font-bold">
+                              Lọc dữ liệu
+                            </DropdownMenuLabel>
+                            {header.id === 'file_name' ? (
+                              <>
+                                <DropdownMenuSub>
+                                  <DropdownMenuSubTrigger className="text-xs focus:bg-indigo-500/20 focus:text-indigo-300 data-[state=open]:bg-indigo-500/20 data-[state=open]:text-indigo-300 cursor-pointer rounded-lg px-2 py-2">
+                                    <FileAudio size={14} className="mr-2 opacity-70 shrink-0" />
+                                    <span className="flex-1">Loại File</span>
+                                    {((header.column.getFilterValue() as any)?.types?.length > 0) && (
+                                      <span className="text-[9px] bg-indigo-500/30 text-indigo-200 px-1.5 py-0.5 rounded-full font-bold ml-2 mr-1 flex items-center justify-center min-w-[1.25rem]">
+                                        {(header.column.getFilterValue() as any).types.length}
+                                      </span>
+                                    )}
+                                  </DropdownMenuSubTrigger>
+                                  <DropdownMenuPortal>
+                                    <DropdownMenuSubContent className="bg-zinc-950/95 border-white/10 backdrop-blur-xl shadow-xl shadow-black/80 text-zinc-300 p-1.5 rounded-xl z-50 min-w-[8rem]">
+                                      {availableExtensions.map(ext => {
+                                        const currentFilters = header.column.getFilterValue() as any || { types: [], bitrates: [] };
+                                        const isChecked = currentFilters.types?.includes(ext);
+                                        return (
+                                          <DropdownMenuCheckboxItem
+                                            key={ext}
+                                            checked={isChecked}
+                                            onCheckedChange={(checked) => {
+                                              const newTypes = checked
+                                                ? [...(currentFilters.types || []), ext]
+                                                : (currentFilters.types || []).filter((t: string) => t !== ext);
+
+                                              const newFilter = { ...currentFilters, types: newTypes };
+                                              if (newFilter.types.length === 0 && (!newFilter.bitrates || newFilter.bitrates.length === 0)) {
+                                                header.column.setFilterValue(undefined);
+                                              } else {
+                                                header.column.setFilterValue(newFilter);
+                                              }
+                                            }}
+                                            className="text-xs focus:bg-indigo-500/20 focus:text-indigo-300 cursor-pointer rounded-lg px-2 py-2 [&>span.absolute]:hidden"
+                                          >
+                                            <span className={`font-semibold ${getExtensionTextColor(ext)}`}>{ext}</span>
+                                          </DropdownMenuCheckboxItem>
+                                        );
+                                      })}
+                                    </DropdownMenuSubContent>
+                                  </DropdownMenuPortal>
+                                </DropdownMenuSub>
+
+                                <DropdownMenuSub>
+                                  <DropdownMenuSubTrigger className="text-xs focus:bg-indigo-500/20 focus:text-indigo-300 data-[state=open]:bg-indigo-500/20 data-[state=open]:text-indigo-300 cursor-pointer rounded-lg px-2 py-2">
+                                    <Activity size={14} className="mr-2 opacity-70 shrink-0" />
+                                    <span className="flex-1">Bitrate</span>
+                                    {((header.column.getFilterValue() as any)?.bitrates?.length > 0) && (
+                                      <span className="text-[9px] bg-indigo-500/30 text-indigo-200 px-1.5 py-0.5 rounded-full font-bold ml-2 mr-1 flex items-center justify-center min-w-[1.25rem]">
+                                        {(header.column.getFilterValue() as any).bitrates.length}
+                                      </span>
+                                    )}
+                                  </DropdownMenuSubTrigger>
+                                  <DropdownMenuPortal>
+                                    <DropdownMenuSubContent className="bg-zinc-950/95 border-white/10 backdrop-blur-xl shadow-xl shadow-black/80 text-zinc-300 p-1.5 rounded-xl z-50 min-w-[12rem]">
+                                      {[
+                                        { id: '>320', label: 'Lossless (> 320 kbps)' },
+                                        { id: '320', label: 'High Quality (320 kbps)' },
+                                        { id: '<320', label: 'Standard (< 320 kbps)' },
+                                        { id: 'unknown', label: 'Unknown' },
+                                      ].map(br => {
+                                        const currentFilters = header.column.getFilterValue() as any || { types: [], bitrates: [] };
+                                        const isChecked = currentFilters.bitrates?.includes(br.id);
+                                        return (
+                                          <DropdownMenuCheckboxItem
+                                            key={br.id}
+                                            checked={isChecked}
+                                            onCheckedChange={(checked) => {
+                                              const newBitrates = checked
+                                                ? [...(currentFilters.bitrates || []), br.id]
+                                                : (currentFilters.bitrates || []).filter((b: string) => b !== br.id);
+
+                                              const newFilter = { ...currentFilters, bitrates: newBitrates };
+                                              if ((!newFilter.types || newFilter.types.length === 0) && newFilter.bitrates.length === 0) {
+                                                header.column.setFilterValue(undefined);
+                                              } else {
+                                                header.column.setFilterValue(newFilter);
+                                              }
+                                            }}
+                                            className="text-xs focus:bg-indigo-500/20 focus:text-indigo-300 cursor-pointer rounded-lg px-2 py-2 [&>span.absolute]:hidden"
+                                          >
+                                            <span className={isChecked ? "text-indigo-400 font-bold" : ""}>{br.label}</span>
+                                          </DropdownMenuCheckboxItem>
+                                        );
+                                      })}
+                                    </DropdownMenuSubContent>
+                                  </DropdownMenuPortal>
+                                </DropdownMenuSub>
+                                <DropdownMenuSeparator className="bg-white/5 my-1.5" />
+                                <DropdownMenuCheckboxItem
+                                  checked={(header.column.getFilterValue() as any)?.emptyState === 'NOT_EMPTY'}
+                                  onCheckedChange={() => {
+                                    const current = header.column.getFilterValue() as any || {};
+                                    const newState = current.emptyState === 'NOT_EMPTY' ? undefined : 'NOT_EMPTY';
+                                    const newFilter = { ...current, emptyState: newState };
+                                    if (!newFilter.types?.length && !newFilter.bitrates?.length && !newFilter.emptyState) header.column.setFilterValue(undefined);
+                                    else header.column.setFilterValue(newFilter);
+                                  }}
+                                  className="text-xs focus:bg-emerald-500/20 focus:text-emerald-300 cursor-pointer rounded-lg px-2 py-2 [&>span.absolute]:hidden"
+                                >
+                                  <span className={(header.column.getFilterValue() as any)?.emptyState === 'NOT_EMPTY' ? "text-emerald-400 font-bold" : ""}>Có dữ liệu</span>
+                                </DropdownMenuCheckboxItem>
+                                <DropdownMenuCheckboxItem
+                                  checked={(header.column.getFilterValue() as any)?.emptyState === 'EMPTY'}
+                                  onCheckedChange={() => {
+                                    const current = header.column.getFilterValue() as any || {};
+                                    const newState = current.emptyState === 'EMPTY' ? undefined : 'EMPTY';
+                                    const newFilter = { ...current, emptyState: newState };
+                                    if (!newFilter.types?.length && !newFilter.bitrates?.length && !newFilter.emptyState) header.column.setFilterValue(undefined);
+                                    else header.column.setFilterValue(newFilter);
+                                  }}
+                                  className="text-xs focus:bg-amber-500/20 focus:text-amber-300 cursor-pointer rounded-lg px-2 py-2 [&>span.absolute]:hidden"
+                                >
+                                  <span className={(header.column.getFilterValue() as any)?.emptyState === 'EMPTY' ? "text-amber-400 font-bold" : ""}>Không có dữ liệu</span>
+                                </DropdownMenuCheckboxItem>
+                              </>
+                            ) : header.id === 'artist' ? (
+                              <>
+                                <DropdownMenuSub>
+                                  <DropdownMenuSubTrigger className="text-xs focus:bg-indigo-500/20 focus:text-indigo-300 data-[state=open]:bg-indigo-500/20 data-[state=open]:text-indigo-300 cursor-pointer rounded-lg px-2 py-2">
+                                    <Users size={14} className="mr-2 opacity-70 shrink-0" />
+                                    <span className="flex-1">Hợp tác (Featuring)</span>
+                                    {((header.column.getFilterValue() as any)?.collabTypes?.length > 0) && (
+                                      <span className="text-[9px] bg-indigo-500/30 text-indigo-200 px-1.5 py-0.5 rounded-full font-bold ml-2 mr-1 flex items-center justify-center min-w-[1.25rem]">
+                                        {(header.column.getFilterValue() as any).collabTypes.length}
+                                      </span>
+                                    )}
+                                  </DropdownMenuSubTrigger>
+                                  <DropdownMenuPortal>
+                                    <DropdownMenuSubContent className="bg-zinc-950/95 border-white/10 backdrop-blur-xl shadow-xl shadow-black/80 text-zinc-300 p-1.5 rounded-xl z-50 min-w-[10rem]">
+                                      {[
+                                        { id: 'solo', label: 'Hát đơn (Solo)' },
+                                        { id: 'collab', label: 'Có kết hợp (Featuring)' },
+                                      ].map(type => {
+                                        const currentFilters = header.column.getFilterValue() as any || { collabTypes: [] };
+                                        const isChecked = currentFilters.collabTypes?.includes(type.id);
+                                        return (
+                                          <DropdownMenuCheckboxItem
+                                            key={type.id}
+                                            checked={isChecked}
+                                            onCheckedChange={(checked) => {
+                                              const newTypes = checked
+                                                ? [...(currentFilters.collabTypes || []), type.id]
+                                                : (currentFilters.collabTypes || []).filter((t: string) => t !== type.id);
+
+                                              const newFilter = { ...currentFilters, collabTypes: newTypes };
+                                              if (newFilter.collabTypes.length === 0 && !newFilter.emptyState) {
+                                                header.column.setFilterValue(undefined);
+                                              } else {
+                                                header.column.setFilterValue(newFilter);
+                                              }
+                                            }}
+                                            className="text-xs focus:bg-indigo-500/20 focus:text-indigo-300 cursor-pointer rounded-lg px-2 py-2 [&>span.absolute]:hidden"
+                                          >
+                                            <span className={isChecked ? "text-indigo-400 font-bold" : ""}>{type.label}</span>
+                                          </DropdownMenuCheckboxItem>
+                                        );
+                                      })}
+                                    </DropdownMenuSubContent>
+                                  </DropdownMenuPortal>
+                                </DropdownMenuSub>
+                                <DropdownMenuSeparator className="bg-white/5 my-1.5" />
+                                <DropdownMenuCheckboxItem
+                                  checked={(header.column.getFilterValue() as any)?.emptyState === 'NOT_EMPTY'}
+                                  onCheckedChange={() => {
+                                    const current = header.column.getFilterValue() as any || {};
+                                    const newState = current.emptyState === 'NOT_EMPTY' ? undefined : 'NOT_EMPTY';
+                                    const newFilter = { ...current, emptyState: newState };
+                                    if (!newFilter.collabTypes?.length && !newFilter.emptyState) header.column.setFilterValue(undefined);
+                                    else header.column.setFilterValue(newFilter);
+                                  }}
+                                  className="text-xs focus:bg-emerald-500/20 focus:text-emerald-300 cursor-pointer rounded-lg px-2 py-2 [&>span.absolute]:hidden"
+                                >
+                                  <span className={(header.column.getFilterValue() as any)?.emptyState === 'NOT_EMPTY' ? "text-emerald-400 font-bold" : ""}>Có dữ liệu</span>
+                                </DropdownMenuCheckboxItem>
+                                <DropdownMenuCheckboxItem
+                                  checked={(header.column.getFilterValue() as any)?.emptyState === 'EMPTY'}
+                                  onCheckedChange={() => {
+                                    const current = header.column.getFilterValue() as any || {};
+                                    const newState = current.emptyState === 'EMPTY' ? undefined : 'EMPTY';
+                                    const newFilter = { ...current, emptyState: newState };
+                                    if (!newFilter.collabTypes?.length && !newFilter.emptyState) header.column.setFilterValue(undefined);
+                                    else header.column.setFilterValue(newFilter);
+                                  }}
+                                  className="text-xs focus:bg-amber-500/20 focus:text-amber-300 cursor-pointer rounded-lg px-2 py-2 [&>span.absolute]:hidden"
+                                >
+                                  <span className={(header.column.getFilterValue() as any)?.emptyState === 'EMPTY' ? "text-amber-400 font-bold" : ""}>Không có dữ liệu</span>
+                                </DropdownMenuCheckboxItem>
+                              </>
+                            ) : (
+                              <>
+                                <DropdownMenuCheckboxItem
+                                  checked={header.column.getFilterValue() === 'NOT_EMPTY'}
+                                  onCheckedChange={() => {
+                                    if (header.column.getFilterValue() === 'NOT_EMPTY') {
+                                      header.column.setFilterValue(undefined);
+                                    } else {
+                                      header.column.setFilterValue('NOT_EMPTY');
+                                    }
+                                  }}
+                                  className="text-xs focus:bg-emerald-500/20 focus:text-emerald-300 cursor-pointer rounded-lg px-2 py-2 [&>span.absolute]:hidden"
+                                >
+                                  <span className={header.column.getFilterValue() === 'NOT_EMPTY' ? "text-emerald-400 font-bold" : ""}>Có dữ liệu</span>
+                                </DropdownMenuCheckboxItem>
+                                <DropdownMenuCheckboxItem
+                                  checked={header.column.getFilterValue() === 'EMPTY'}
+                                  onCheckedChange={() => {
+                                    if (header.column.getFilterValue() === 'EMPTY') {
+                                      header.column.setFilterValue(undefined);
+                                    } else {
+                                      header.column.setFilterValue('EMPTY');
+                                    }
+                                  }}
+                                  className="text-xs focus:bg-amber-500/20 focus:text-amber-300 cursor-pointer rounded-lg px-2 py-2 [&>span.absolute]:hidden"
+                                >
+                                  <span className={header.column.getFilterValue() === 'EMPTY' ? "text-amber-400 font-bold" : ""}>Không có dữ liệu</span>
+                                </DropdownMenuCheckboxItem>
+                              </>
+                            )}
+
+                            {Boolean(header.column.getFilterValue()) && (
+                              <DropdownMenuItem
+                                className="text-xs text-rose-400 focus:bg-rose-500/10 focus:text-rose-300 cursor-pointer rounded-lg px-2 py-2 mt-1"
+                                onClick={() => header.column.setFilterValue(undefined)}
+                              >
+                                <FilterX size={14} className="mr-2 opacity-70" />
+                                <span>Bỏ lọc</span>
+                              </DropdownMenuItem>
+                            )}
+
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      )}
                     </div>
-                    
-                    {header.id !== 'select' && (
-                      <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <button
-                          className={`p-1.5 shrink-0 rounded-md transition-all duration-300 outline-none focus:outline-none data-[state=open]:opacity-100 data-[state=open]:bg-indigo-500/20 data-[state=open]:text-indigo-300 ${
-                            header.column.getFilterValue() || header.column.getIsSorted()
-                              ? 'bg-amber-500/20 text-amber-400 opacity-100 shadow-[0_0_12px_rgba(245,158,11,0.3)] data-[state=open]:bg-amber-500/30 data-[state=open]:text-amber-300'
-                              : 'opacity-40 group-hover:opacity-100 hover:bg-white/10 text-zinc-500 hover:text-zinc-300'
-                          }`}
-                          title="Tuỳ chọn cột"
-                        >
-                          {header.column.getIsSorted() === 'asc' ? <ArrowDownAZ size={13} strokeWidth={2.5} /> :
-                           header.column.getIsSorted() === 'desc' ? <ArrowUpZA size={13} strokeWidth={2.5} /> :
-                           <Filter size={13} strokeWidth={2.5} />}
-                        </button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-56 bg-zinc-950/95 border-white/10 backdrop-blur-xl shadow-xl shadow-black/80 text-zinc-300 p-1.5 rounded-xl z-50">
-                        
-                        <DropdownMenuLabel className="text-[10px] text-zinc-500 uppercase tracking-widest px-2 py-1.5 font-bold">
-                          Sắp xếp
-                        </DropdownMenuLabel>
-                        <DropdownMenuItem 
-                          className="text-xs focus:bg-indigo-500/20 focus:text-indigo-300 cursor-pointer rounded-lg px-2 py-2"
-                          onClick={() => header.column.toggleSorting(false)}
-                        >
-                          <ArrowDownAZ size={14} className={`mr-2 ${header.column.getIsSorted() === 'asc' ? 'opacity-100 text-indigo-400' : 'opacity-70'}`} />
-                          <span className={header.column.getIsSorted() === 'asc' ? "text-indigo-400 font-bold" : ""}>Từ A đến Z</span>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem 
-                          className="text-xs focus:bg-indigo-500/20 focus:text-indigo-300 cursor-pointer rounded-lg px-2 py-2"
-                          onClick={() => header.column.toggleSorting(true)}
-                        >
-                          <ArrowUpZA size={14} className={`mr-2 ${header.column.getIsSorted() === 'desc' ? 'opacity-100 text-indigo-400' : 'opacity-70'}`} />
-                          <span className={header.column.getIsSorted() === 'desc' ? "text-indigo-400 font-bold" : ""}>Từ Z đến A</span>
-                        </DropdownMenuItem>
-                        {header.column.getIsSorted() && (
-                          <DropdownMenuItem 
-                            className="text-xs text-rose-400 focus:bg-rose-500/10 focus:text-rose-300 cursor-pointer rounded-lg px-2 py-2 mt-1"
-                            onClick={() => header.column.clearSorting()}
-                          >
-                            <X size={14} className="mr-2 opacity-70" />
-                            <span>Bỏ sắp xếp</span>
-                          </DropdownMenuItem>
-                        )}
-                        
-                        <DropdownMenuSeparator className="bg-white/5 my-1.5" />
-                        
-                        <DropdownMenuLabel className="text-[10px] text-zinc-500 uppercase tracking-widest px-2 py-1.5 font-bold">
-                          Lọc dữ liệu
-                        </DropdownMenuLabel>
-                        {header.id === 'file_name' ? (
-                          <>
-                            <DropdownMenuSub>
-                              <DropdownMenuSubTrigger className="text-xs focus:bg-indigo-500/20 focus:text-indigo-300 data-[state=open]:bg-indigo-500/20 data-[state=open]:text-indigo-300 cursor-pointer rounded-lg px-2 py-2">
-                                <FileAudio size={14} className="mr-2 opacity-70 shrink-0" />
-                                <span className="flex-1">Loại File</span>
-                                {((header.column.getFilterValue() as any)?.types?.length > 0) && (
-                                  <span className="text-[9px] bg-indigo-500/30 text-indigo-200 px-1.5 py-0.5 rounded-full font-bold ml-2 mr-1 flex items-center justify-center min-w-[1.25rem]">
-                                    {(header.column.getFilterValue() as any).types.length}
-                                  </span>
-                                )}
-                              </DropdownMenuSubTrigger>
-                              <DropdownMenuPortal>
-                                <DropdownMenuSubContent className="bg-zinc-950/95 border-white/10 backdrop-blur-xl shadow-xl shadow-black/80 text-zinc-300 p-1.5 rounded-xl z-50 min-w-[8rem]">
-                                  {availableExtensions.map(ext => {
-                                    const currentFilters = header.column.getFilterValue() as any || { types: [], bitrates: [] };
-                                    const isChecked = currentFilters.types?.includes(ext);
-                                    return (
-                                      <DropdownMenuCheckboxItem
-                                        key={ext}
-                                        checked={isChecked}
-                                        onCheckedChange={(checked) => {
-                                          const newTypes = checked 
-                                            ? [...(currentFilters.types || []), ext] 
-                                            : (currentFilters.types || []).filter((t: string) => t !== ext);
-                                          
-                                          const newFilter = { ...currentFilters, types: newTypes };
-                                          if (newFilter.types.length === 0 && (!newFilter.bitrates || newFilter.bitrates.length === 0)) {
-                                            header.column.setFilterValue(undefined);
-                                          } else {
-                                            header.column.setFilterValue(newFilter);
-                                          }
-                                        }}
-                                        className="text-xs focus:bg-indigo-500/20 focus:text-indigo-300 cursor-pointer rounded-lg px-2 py-2 [&>span.absolute]:hidden"
-                                      >
-                                        <span className={`font-semibold ${getExtensionTextColor(ext)}`}>{ext}</span>
-                                      </DropdownMenuCheckboxItem>
-                                    );
-                                  })}
-                                </DropdownMenuSubContent>
-                              </DropdownMenuPortal>
-                            </DropdownMenuSub>
-
-                            <DropdownMenuSub>
-                              <DropdownMenuSubTrigger className="text-xs focus:bg-indigo-500/20 focus:text-indigo-300 data-[state=open]:bg-indigo-500/20 data-[state=open]:text-indigo-300 cursor-pointer rounded-lg px-2 py-2">
-                                <Activity size={14} className="mr-2 opacity-70 shrink-0" />
-                                <span className="flex-1">Bitrate</span>
-                                {((header.column.getFilterValue() as any)?.bitrates?.length > 0) && (
-                                  <span className="text-[9px] bg-indigo-500/30 text-indigo-200 px-1.5 py-0.5 rounded-full font-bold ml-2 mr-1 flex items-center justify-center min-w-[1.25rem]">
-                                    {(header.column.getFilterValue() as any).bitrates.length}
-                                  </span>
-                                )}
-                              </DropdownMenuSubTrigger>
-                              <DropdownMenuPortal>
-                                <DropdownMenuSubContent className="bg-zinc-950/95 border-white/10 backdrop-blur-xl shadow-xl shadow-black/80 text-zinc-300 p-1.5 rounded-xl z-50 min-w-[12rem]">
-                                  {[
-                                    { id: '>320', label: 'Lossless (> 320 kbps)' },
-                                    { id: '320', label: 'High Quality (320 kbps)' },
-                                    { id: '<320', label: 'Standard (< 320 kbps)' },
-                                    { id: 'unknown', label: 'Unknown' },
-                                  ].map(br => {
-                                    const currentFilters = header.column.getFilterValue() as any || { types: [], bitrates: [] };
-                                    const isChecked = currentFilters.bitrates?.includes(br.id);
-                                    return (
-                                      <DropdownMenuCheckboxItem
-                                        key={br.id}
-                                        checked={isChecked}
-                                        onCheckedChange={(checked) => {
-                                          const newBitrates = checked 
-                                            ? [...(currentFilters.bitrates || []), br.id] 
-                                            : (currentFilters.bitrates || []).filter((b: string) => b !== br.id);
-                                          
-                                          const newFilter = { ...currentFilters, bitrates: newBitrates };
-                                          if ((!newFilter.types || newFilter.types.length === 0) && newFilter.bitrates.length === 0) {
-                                            header.column.setFilterValue(undefined);
-                                          } else {
-                                            header.column.setFilterValue(newFilter);
-                                          }
-                                        }}
-                                        className="text-xs focus:bg-indigo-500/20 focus:text-indigo-300 cursor-pointer rounded-lg px-2 py-2 [&>span.absolute]:hidden"
-                                      >
-                                        <span className={isChecked ? "text-indigo-400 font-bold" : ""}>{br.label}</span>
-                                      </DropdownMenuCheckboxItem>
-                                    );
-                                  })}
-                                </DropdownMenuSubContent>
-                              </DropdownMenuPortal>
-                            </DropdownMenuSub>
-                            <DropdownMenuSeparator className="bg-white/5 my-1.5" />
-                            <DropdownMenuCheckboxItem
-                              checked={(header.column.getFilterValue() as any)?.emptyState === 'NOT_EMPTY'}
-                              onCheckedChange={() => {
-                                const current = header.column.getFilterValue() as any || {};
-                                const newState = current.emptyState === 'NOT_EMPTY' ? undefined : 'NOT_EMPTY';
-                                const newFilter = { ...current, emptyState: newState };
-                                if (!newFilter.types?.length && !newFilter.bitrates?.length && !newFilter.emptyState) header.column.setFilterValue(undefined);
-                                else header.column.setFilterValue(newFilter);
-                              }}
-                              className="text-xs focus:bg-emerald-500/20 focus:text-emerald-300 cursor-pointer rounded-lg px-2 py-2 [&>span.absolute]:hidden"
-                            >
-                              <span className={(header.column.getFilterValue() as any)?.emptyState === 'NOT_EMPTY' ? "text-emerald-400 font-bold" : ""}>Có dữ liệu</span>
-                            </DropdownMenuCheckboxItem>
-                            <DropdownMenuCheckboxItem
-                              checked={(header.column.getFilterValue() as any)?.emptyState === 'EMPTY'}
-                              onCheckedChange={() => {
-                                const current = header.column.getFilterValue() as any || {};
-                                const newState = current.emptyState === 'EMPTY' ? undefined : 'EMPTY';
-                                const newFilter = { ...current, emptyState: newState };
-                                if (!newFilter.types?.length && !newFilter.bitrates?.length && !newFilter.emptyState) header.column.setFilterValue(undefined);
-                                else header.column.setFilterValue(newFilter);
-                              }}
-                              className="text-xs focus:bg-amber-500/20 focus:text-amber-300 cursor-pointer rounded-lg px-2 py-2 [&>span.absolute]:hidden"
-                            >
-                              <span className={(header.column.getFilterValue() as any)?.emptyState === 'EMPTY' ? "text-amber-400 font-bold" : ""}>Không có dữ liệu</span>
-                            </DropdownMenuCheckboxItem>
-                          </>
-                        ) : header.id === 'artist' ? (
-                          <>
-                            <DropdownMenuSub>
-                              <DropdownMenuSubTrigger className="text-xs focus:bg-indigo-500/20 focus:text-indigo-300 data-[state=open]:bg-indigo-500/20 data-[state=open]:text-indigo-300 cursor-pointer rounded-lg px-2 py-2">
-                                <Users size={14} className="mr-2 opacity-70 shrink-0" />
-                                <span className="flex-1">Hợp tác (Featuring)</span>
-                                {((header.column.getFilterValue() as any)?.collabTypes?.length > 0) && (
-                                  <span className="text-[9px] bg-indigo-500/30 text-indigo-200 px-1.5 py-0.5 rounded-full font-bold ml-2 mr-1 flex items-center justify-center min-w-[1.25rem]">
-                                    {(header.column.getFilterValue() as any).collabTypes.length}
-                                  </span>
-                                )}
-                              </DropdownMenuSubTrigger>
-                              <DropdownMenuPortal>
-                                <DropdownMenuSubContent className="bg-zinc-950/95 border-white/10 backdrop-blur-xl shadow-xl shadow-black/80 text-zinc-300 p-1.5 rounded-xl z-50 min-w-[10rem]">
-                                  {[
-                                    { id: 'solo', label: 'Hát đơn (Solo)' },
-                                    { id: 'collab', label: 'Có kết hợp (Featuring)' },
-                                  ].map(type => {
-                                    const currentFilters = header.column.getFilterValue() as any || { collabTypes: [] };
-                                    const isChecked = currentFilters.collabTypes?.includes(type.id);
-                                    return (
-                                      <DropdownMenuCheckboxItem
-                                        key={type.id}
-                                        checked={isChecked}
-                                        onCheckedChange={(checked) => {
-                                          const newTypes = checked 
-                                            ? [...(currentFilters.collabTypes || []), type.id] 
-                                            : (currentFilters.collabTypes || []).filter((t: string) => t !== type.id);
-                                          
-                                          const newFilter = { ...currentFilters, collabTypes: newTypes };
-                                          if (newFilter.collabTypes.length === 0 && !newFilter.emptyState) {
-                                            header.column.setFilterValue(undefined);
-                                          } else {
-                                            header.column.setFilterValue(newFilter);
-                                          }
-                                        }}
-                                        className="text-xs focus:bg-indigo-500/20 focus:text-indigo-300 cursor-pointer rounded-lg px-2 py-2 [&>span.absolute]:hidden"
-                                      >
-                                        <span className={isChecked ? "text-indigo-400 font-bold" : ""}>{type.label}</span>
-                                      </DropdownMenuCheckboxItem>
-                                    );
-                                  })}
-                                </DropdownMenuSubContent>
-                              </DropdownMenuPortal>
-                            </DropdownMenuSub>
-                            <DropdownMenuSeparator className="bg-white/5 my-1.5" />
-                            <DropdownMenuCheckboxItem
-                              checked={(header.column.getFilterValue() as any)?.emptyState === 'NOT_EMPTY'}
-                              onCheckedChange={() => {
-                                const current = header.column.getFilterValue() as any || {};
-                                const newState = current.emptyState === 'NOT_EMPTY' ? undefined : 'NOT_EMPTY';
-                                const newFilter = { ...current, emptyState: newState };
-                                if (!newFilter.collabTypes?.length && !newFilter.emptyState) header.column.setFilterValue(undefined);
-                                else header.column.setFilterValue(newFilter);
-                              }}
-                              className="text-xs focus:bg-emerald-500/20 focus:text-emerald-300 cursor-pointer rounded-lg px-2 py-2 [&>span.absolute]:hidden"
-                            >
-                              <span className={(header.column.getFilterValue() as any)?.emptyState === 'NOT_EMPTY' ? "text-emerald-400 font-bold" : ""}>Có dữ liệu</span>
-                            </DropdownMenuCheckboxItem>
-                            <DropdownMenuCheckboxItem
-                              checked={(header.column.getFilterValue() as any)?.emptyState === 'EMPTY'}
-                              onCheckedChange={() => {
-                                const current = header.column.getFilterValue() as any || {};
-                                const newState = current.emptyState === 'EMPTY' ? undefined : 'EMPTY';
-                                const newFilter = { ...current, emptyState: newState };
-                                if (!newFilter.collabTypes?.length && !newFilter.emptyState) header.column.setFilterValue(undefined);
-                                else header.column.setFilterValue(newFilter);
-                              }}
-                              className="text-xs focus:bg-amber-500/20 focus:text-amber-300 cursor-pointer rounded-lg px-2 py-2 [&>span.absolute]:hidden"
-                            >
-                              <span className={(header.column.getFilterValue() as any)?.emptyState === 'EMPTY' ? "text-amber-400 font-bold" : ""}>Không có dữ liệu</span>
-                            </DropdownMenuCheckboxItem>
-                          </>
-                        ) : (
-                          <>
-                            <DropdownMenuCheckboxItem
-                              checked={header.column.getFilterValue() === 'NOT_EMPTY'}
-                              onCheckedChange={() => {
-                                if (header.column.getFilterValue() === 'NOT_EMPTY') {
-                                  header.column.setFilterValue(undefined);
-                                } else {
-                                  header.column.setFilterValue('NOT_EMPTY');
-                                }
-                              }}
-                              className="text-xs focus:bg-emerald-500/20 focus:text-emerald-300 cursor-pointer rounded-lg px-2 py-2 [&>span.absolute]:hidden"
-                            >
-                              <span className={header.column.getFilterValue() === 'NOT_EMPTY' ? "text-emerald-400 font-bold" : ""}>Có dữ liệu</span>
-                            </DropdownMenuCheckboxItem>
-                            <DropdownMenuCheckboxItem
-                              checked={header.column.getFilterValue() === 'EMPTY'}
-                              onCheckedChange={() => {
-                                if (header.column.getFilterValue() === 'EMPTY') {
-                                  header.column.setFilterValue(undefined);
-                                } else {
-                                  header.column.setFilterValue('EMPTY');
-                                }
-                              }}
-                              className="text-xs focus:bg-amber-500/20 focus:text-amber-300 cursor-pointer rounded-lg px-2 py-2 [&>span.absolute]:hidden"
-                            >
-                              <span className={header.column.getFilterValue() === 'EMPTY' ? "text-amber-400 font-bold" : ""}>Không có dữ liệu</span>
-                            </DropdownMenuCheckboxItem>
-                          </>
-                        )}
-
-                        {Boolean(header.column.getFilterValue()) && (
-                          <DropdownMenuItem 
-                            className="text-xs text-rose-400 focus:bg-rose-500/10 focus:text-rose-300 cursor-pointer rounded-lg px-2 py-2 mt-1"
-                            onClick={() => header.column.setFilterValue(undefined)}
-                          >
-                            <FilterX size={14} className="mr-2 opacity-70" />
-                            <span>Bỏ lọc</span>
-                          </DropdownMenuItem>
-                        )}
-                        
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                    )}
                   </div>
-                </div>
-              ))}
-            </div>
-          ))}
-        </div>
-
-        {/* Virtualized Rows Container */}
-        <div
-          style={{
-            position: 'absolute',
-            top: 48, // Height of the sticky header
-            left: 0,
-            width: '100%',
-            transform: `translateY(${rowVirtualizer.getVirtualItems()[0]?.start ?? 0}px)`,
-          }}
-        >
-          {rowVirtualizer.getVirtualItems().map(virtualRow => {
-            const row = rows[virtualRow.index];
-            const isSelected = selectedFiles.includes(row.original.file_path);
-
-            return (
-              <div
-                key={row.id}
-                data-index={virtualRow.index}
-                onClick={(e) => handleRowClick(e, row.original.file_path)}
-                className={`flex w-full items-stretch cursor-pointer select-none transition-all duration-300 relative group overflow-hidden border-b border-white/5 ${
-                  isSelected ? 'row-active-bg after:absolute after:left-0 after:top-0 after:bottom-0 after:w-[3px] after:bg-indigo-500' : 'row-hover-bg'
-                }`}
-                style={{ height: '40px' }}
-              >
-                <div className="row-gradient-overlay" />
-                {row.getVisibleCells().map(cell => {
-                  let value = cell.getValue();
-                  if (value === null || value === undefined) value = "";
-
-                  return (
-                    <div
-                      key={cell.id}
-                      className={`py-1.5 text-zinc-300 flex items-center border-r border-white/5 last:border-r-0 z-10 ${cell.column.id === 'select' ? 'px-0 justify-center' : 'px-3'}`}
-                      style={{ width: cell.column.getSize() }}
-                    >
-                      <div className={cell.column.id === 'select' ? 'w-full flex justify-center items-center h-full' : 'truncate w-full block'}>
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </div>
-                    </div>
-                  );
-                })}
+                ))}
               </div>
-            );
-          })}
+            ))}
+          </div>
+
+          {/* Virtualized Rows Container */}
+          <div
+            style={{
+              position: 'absolute',
+              top: 48, // Height of the sticky header
+              left: 0,
+              width: '100%',
+              transform: `translateY(${rowVirtualizer.getVirtualItems()[0]?.start ?? 0}px)`,
+            }}
+          >
+            {rowVirtualizer.getVirtualItems().map(virtualRow => {
+              const row = rows[virtualRow.index];
+              const isSelected = selectedFiles.includes(row.original.file_path);
+
+              return (
+                <div
+                  key={row.id}
+                  data-index={virtualRow.index}
+                  onClick={(e) => handleRowClick(e, row.original.file_path)}
+                  className={`flex w-full items-stretch cursor-pointer select-none transition-all duration-300 relative group overflow-hidden border-b border-white/5 ${isSelected ? 'row-active-bg after:absolute after:left-0 after:top-0 after:bottom-0 after:w-[3px] after:bg-indigo-500' : 'row-hover-bg'
+                    }`}
+                  style={{ height: '40px' }}
+                >
+                  <div className="row-gradient-overlay" />
+                  {row.getVisibleCells().map(cell => {
+                    let value = cell.getValue();
+                    if (value === null || value === undefined) value = "";
+
+                    return (
+                      <div
+                        key={cell.id}
+                        className={`py-1.5 text-zinc-300 flex items-center border-r border-white/5 last:border-r-0 z-10 ${cell.column.id === 'select' ? 'px-0 justify-center' : 'px-3'}`}
+                        style={{ width: cell.column.getSize() }}
+                      >
+                        <div className={cell.column.id === 'select' ? 'w-full flex justify-center items-center h-full' : 'truncate w-full block'}>
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })}
+          </div>
         </div>
+        <div
+          ref={tooltipRef}
+          className="fixed z-[100] px-3 py-1.5 text-xs font-medium rounded-md shadow-md backdrop-blur-xl bg-white/70 text-zinc-800 dark:bg-zinc-800/70 dark:text-white/80 border border-black/10 dark:border-white/10 pointer-events-none"
+          style={{ display: 'none' }}
+        />
       </div>
-    </div>
     </div>
   );
 };

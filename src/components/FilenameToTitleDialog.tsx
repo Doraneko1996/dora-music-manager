@@ -10,6 +10,7 @@ import {
   DialogClose
 } from './ui/dialog';
 import { Button } from './ui/button';
+import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 import { useAudioStore } from '../store/useAudioStore';
 import { FileText, ArrowRight } from 'lucide-react';
 import { toast } from 'sonner';
@@ -67,15 +68,25 @@ export const FilenameToTitleDialog: React.FC<FilenameToTitleDialogProps> = ({ ch
               
               return (
                 <div key={file.file_path} className="grid grid-cols-[1fr_auto_1fr] gap-4 p-4 hover:bg-white/5 items-center transition-colors">
-                  <div className="text-sm truncate text-zinc-300" title={file.file_name}>
-                    {file.file_name}
-                  </div>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="text-sm truncate text-zinc-300">
+                        {file.file_name}
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent>{file.file_name}</TooltipContent>
+                  </Tooltip>
                   <div className="flex items-center justify-center text-zinc-600">
                     <ArrowRight size={14} />
                   </div>
-                  <div className="text-sm truncate font-medium text-indigo-300" title={baseName}>
-                    {baseName}
-                  </div>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="text-sm truncate font-medium text-indigo-300">
+                        {baseName}
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent>{baseName}</TooltipContent>
+                  </Tooltip>
                 </div>
               );
             })}

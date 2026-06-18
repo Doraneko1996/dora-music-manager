@@ -15,7 +15,8 @@ import { TruncatedTooltip } from './ui/truncated-tooltip';
 export const TrackList: React.FC<TrackListProps> = ({ files, selectedEntityName, className, title = "Danh sách bài hát" }) => {
   const highlightArtist = (text: string) => {
     if (!selectedEntityName) return text;
-    const parts = text.split(new RegExp(`(${selectedEntityName})`, 'gi'));
+    const escapedName = selectedEntityName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const parts = text.split(new RegExp(`(${escapedName})`, 'gi'));
     return parts.map((part, idx) => 
       part.toLowerCase() === selectedEntityName.toLowerCase() ? 
         <span key={idx} className="text-yellow-400">{part}</span> : part

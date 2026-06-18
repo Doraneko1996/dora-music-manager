@@ -78,7 +78,7 @@ export const useAudioStore = create<AudioStoreState>((set, get) => ({
   pendingMetadata: {},
   pendingArtworkPath: null,
   currentArtworkBase64: null,
-  gridColumns: 5,
+  gridColumns: Number(localStorage.getItem('dora-grid-columns')) || 5,
   searchQuery: '',
   
   // Actions
@@ -99,7 +99,10 @@ export const useAudioStore = create<AudioStoreState>((set, get) => ({
   setPendingMetadata: (meta) => set((state) => ({ pendingMetadata: { ...state.pendingMetadata, ...meta } })),
   setPendingArtworkPath: (path) => set({ pendingArtworkPath: path }),
   setCurrentArtworkBase64: (b64) => set({ currentArtworkBase64: b64 }),
-  setGridColumns: (cols) => set({ gridColumns: cols }),
+  setGridColumns: (cols) => {
+    localStorage.setItem('dora-grid-columns', cols.toString());
+    set({ gridColumns: cols });
+  },
   setSearchQuery: (query) => set({ searchQuery: query }),
 
   applyFilenamesToTitles: async () => {

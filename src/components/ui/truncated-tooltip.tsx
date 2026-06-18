@@ -29,9 +29,9 @@ export const TruncatedTooltip: React.FC<{ text: React.ReactNode, fullText: strin
         align="start" 
         sideOffset={4}
         collisionPadding={24}
-        className="max-w-none whitespace-nowrap bg-black/80 backdrop-blur-md border border-white/10 shadow-lg px-2.5 py-1.5 rounded-lg animate-in fade-in-0 zoom-in-95 duration-200"
+        className="max-w-none whitespace-nowrap"
       >
-        <p className="text-xs font-medium text-zinc-300 leading-tight">{fullText}</p>
+        {fullText}
       </TooltipContent>
     </Tooltip>
   );

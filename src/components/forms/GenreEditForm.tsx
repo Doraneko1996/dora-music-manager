@@ -5,6 +5,7 @@ import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Button } from '../ui/button';
 import { Form, FormControl, FormField, FormItem } from '../ui/form';
+import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
 import { Music, Save, X, Edit3 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { calculateCommonMetadata, FormValues } from '../../lib/metadataUtils';
@@ -99,22 +100,25 @@ export const GenreEditForm: React.FC = () => {
               render={({ field }) => (
                 <FormItem>
                   <FormControl>
-                    {isEditing ? (
-                      <Input
-                        {...field}
-                        id="genre"
-                        placeholder="Nhập tên thể loại..."
-                        className={cn(inputClass, "text-2xl font-bold text-center h-auto py-2 truncate")}
-                        title={field.value}
-                      />
-                    ) : (
-                      <div
-                        className={cn(inputClass, "text-2xl font-bold text-center h-auto py-2 px-3 truncate w-full")}
-                        title={field.value}
-                      >
-                        {field.value || "Chưa có thể loại"}
-                      </div>
-                    )}
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        {isEditing ? (
+                          <Input
+                            {...field}
+                            id="genre"
+                            placeholder="Nhập tên thể loại..."
+                            className={cn(inputClass, "text-2xl font-bold text-center h-auto py-2 truncate")}
+                          />
+                        ) : (
+                          <div
+                            className={cn(inputClass, "text-2xl font-bold text-center h-auto py-2 px-3 truncate w-full")}
+                          >
+                            {field.value || "Chưa có thể loại"}
+                          </div>
+                        )}
+                      </TooltipTrigger>
+                      {field.value && <TooltipContent>{field.value}</TooltipContent>}
+                    </Tooltip>
                   </FormControl>
                 </FormItem>
               )}

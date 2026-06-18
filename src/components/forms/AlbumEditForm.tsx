@@ -4,6 +4,7 @@ import { useAudioStore, AudioMetadata } from '../../store/useAudioStore';
 import { Input } from '../ui/input';
 import { Button } from '../ui/button';
 import { Form, FormControl, FormField, FormItem } from '../ui/form';
+import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
 import { Music, Save, X, Edit3 } from 'lucide-react';
 import { invoke } from '@tauri-apps/api/core';
 import { cn } from '../../lib/utils';
@@ -104,50 +105,56 @@ export const AlbumEditForm: React.FC = () => {
   return (
     <Form {...form}>
       <div className="flex flex-col gap-6 w-full h-full min-h-0">
-        
-        {/* Album Title */}
-        <div className="flex flex-col gap-1 text-center px-2 shrink-0 pt-2">
-          <FormField
-            control={control}
-            name="album"
-            render={({ field }) => (
-              <FormItem>
-                <FormControl>
-                  {isEditing ? (
-                    <Input
-                      {...field}
-                      id="album"
-                      placeholder="Tên Album..."
-                      className={cn(inputClass, "text-2xl font-bold text-center h-auto py-2 truncate")}
-                      title={field.value}
-                    />
-                  ) : (
-                    <div
-                      className={cn(inputClass, "text-2xl font-bold text-center h-auto py-2 px-3 truncate w-full")}
-                      title={field.value}
-                    >
-                      {field.value || "Chưa có tên Album"}
-                    </div>
-                  )}
-                </FormControl>
-              </FormItem>
-            )}
-          />
-        </div>
 
-        {/* Cover Art Section - Ưu tiên hiển thị lớn */}
-        <div className="shrink-0 flex justify-center w-full items-center">
-          <CoverArtUploader 
-            isEditing={isEditing} 
-            setIsEditing={setIsEditing} 
-            maxSizeClassName="max-h-[240px] sm:max-h-[280px] !w-auto aspect-square shadow-2xl shadow-indigo-500/10"
-          />
+        {/* Header (Title & Cover) - Max 35% viewport height */}
+        <div className="flex flex-col shrink-0 max-h-[35vh] min-h-0 w-full gap-2">
+          {/* Album Title */}
+          <div className="flex flex-col gap-1 text-center px-2 shrink-0 pt-2">
+            <FormField
+              control={control}
+              name="album"
+              render={({ field }) => (
+                <FormItem>
+                  <FormControl>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        {isEditing ? (
+                          <Input
+                            {...field}
+                            id="album"
+                            placeholder="Tên Album..."
+                            className={cn(inputClass, "text-2xl font-bold text-center h-auto py-2 truncate")}
+                          />
+                        ) : (
+                          <div
+                            className={cn(inputClass, "text-2xl font-bold text-center h-auto py-2 px-3 truncate w-full")}
+                          >
+                            {field.value || "Chưa có tên Album"}
+                          </div>
+                        )}
+                      </TooltipTrigger>
+                      {field.value && <TooltipContent>{field.value}</TooltipContent>}
+                    </Tooltip>
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+          </div>
+
+          {/* Cover Art Section - Ưu tiên hiển thị lớn */}
+          <div className="flex-1 flex justify-center w-full items-center min-h-0 -mt-2">
+            <CoverArtUploader
+              isEditing={isEditing}
+              setIsEditing={setIsEditing}
+              maxSizeClassName="h-full max-h-[280px] !w-auto aspect-square shadow-2xl shadow-indigo-500/10"
+            />
+          </div>
         </div>
 
         {/* TrackList Section - Có thể cuộn */}
         <div className="flex flex-col flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-2 pb-2">
-          <TrackList 
-            files={musicFiles.filter(f => selectedFiles.includes(f.file_path))} 
+          <TrackList
+            files={musicFiles.filter(f => selectedFiles.includes(f.file_path))}
           />
         </div>
 
