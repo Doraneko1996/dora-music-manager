@@ -13,6 +13,7 @@ import {
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { useAudioStore, AudioMetadata } from '../store/useAudioStore';
 import { Loader2, ListMusic, Filter, ArrowDownAZ, ArrowUpZA, X, FilterX, FileAudio, Activity, Users, Search } from 'lucide-react';
+import { AlphabetScroller } from './ui/alphabet-scroller';
 
 const getExtensionTextColor = (ext: string) => {
   switch (ext) {
@@ -50,6 +51,9 @@ export const DataGrid: React.FC = () => {
   const tableContainerRef = useRef<HTMLDivElement>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
   const tooltipTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const [isScrubbing, setIsScrubbing] = React.useState(false);
+  const [isScrollerVisible, setIsScrollerVisible] = React.useState(false);
 
   useEffect(() => {
     const container = tableContainerRef.current;
@@ -373,6 +377,27 @@ export const DataGrid: React.FC = () => {
 
   const { rows } = table.getRowModel();
 
+  // Tạo từ điển ánh xạ từ Chữ cái -> Chỉ số dòng đầu tiên
+  const alphabetMap = useMemo(() => {
+    const map = new Map<string, number>();
+    const sortedColumnId = sorting.length > 0 ? sorting[0].id : 'file_name';
+    
+    rows.forEach((row, index) => {
+      let val = row.getValue(sortedColumnId) as string;
+      if (!val) return;
+      
+      let firstChar = val.charAt(0).toUpperCase();
+      if (!/[A-Z]/.test(firstChar)) {
+        firstChar = '#'; // Gom nhóm số và ký hiệu thành #
+      }
+      
+      if (!map.has(firstChar)) {
+        map.set(firstChar, index);
+      }
+    });
+    return map;
+  }, [rows, sorting]);
+
   const rowVirtualizer = useVirtualizer({
     count: rows.length,
     getScrollElement: () => tableContainerRef.current,
@@ -427,7 +452,37 @@ export const DataGrid: React.FC = () => {
   }
 
   return (
-    <div className="flex-1 w-full h-full border border-white/5 rounded-lg relative overflow-hidden bg-black/20 shadow-inner">
+    <div 
+      className="flex-1 w-full h-full border border-white/5 rounded-lg relative overflow-hidden bg-black/20 shadow-inner group/datagrid"
+      onPointerMove={(e) => {
+        if (isScrubbing) return;
+        const scrollContainer = tableContainerRef.current;
+        if (!scrollContainer || scrollContainer.scrollHeight <= scrollContainer.clientHeight) {
+          if (isScrollerVisible) setIsScrollerVisible(false);
+          return;
+        }
+
+        const rect = e.currentTarget.getBoundingClientRect();
+        const distanceFromRight = rect.right - e.clientX;
+        // Mép phải 80px là vùng hiển thị thanh cuộn
+        if (distanceFromRight <= 80) {
+          if (!isScrollerVisible) setIsScrollerVisible(true);
+        } else {
+          if (isScrollerVisible) setIsScrollerVisible(false);
+        }
+      }}
+      onPointerLeave={() => {
+        if (!isScrubbing) setIsScrollerVisible(false);
+      }}
+    >
+      <AlphabetScroller 
+        alphabetMap={alphabetMap}
+        onScrollTo={(index) => rowVirtualizer.scrollToIndex(index, { align: 'start' })}
+        isVisible={isScrollerVisible}
+        onScrubStateChange={setIsScrubbing}
+        className="right-6 top-14 bottom-4"
+      />
+
       <div
         ref={tableContainerRef}
         className="overflow-auto text-sm w-full h-full custom-scrollbar"
