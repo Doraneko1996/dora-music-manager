@@ -14,6 +14,7 @@ import { TrackList } from '../TrackList';
 import { FilenameToTitleDialog } from '../FilenameToTitleDialog';
 import { ArtistSelect } from './ArtistSelect';
 import { AlbumSelect } from './AlbumSelect';
+import { GenreSelect } from './GenreSelect';
 import {
   Dialog,
   DialogContent,
@@ -189,6 +190,15 @@ export const TrackEditForm: React.FC = () => {
     );
   }
 
+  const file = musicFiles.find(f => f.file_path === selectedFiles[0]);
+  let baseName = '';
+  if (file && file.file_name) {
+    const lastDotIndex = file.file_name.lastIndexOf('.');
+    baseName = lastDotIndex !== -1 ? file.file_name.substring(0, lastDotIndex) : file.file_name;
+  }
+  const currentTitle = watch('title');
+  const isTitleSameAsFileName = currentTitle === baseName;
+
   return (
     <Form {...form}>
       <div className="flex flex-col gap-4 w-full h-full min-h-0">
@@ -196,14 +206,11 @@ export const TrackEditForm: React.FC = () => {
           <div className="grid gap-2 min-w-0">
             <div className="flex items-center justify-between">
               <Label htmlFor="title" className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Title</Label>
-              {isEditing && (
+              {isEditing && !isTitleSameAsFileName && (
                 <button
                   type="button"
                   onClick={() => {
-                    const file = musicFiles.find(f => f.file_path === selectedFiles[0]);
-                    if (file && file.file_name) {
-                      const lastDotIndex = file.file_name.lastIndexOf('.');
-                      const baseName = lastDotIndex !== -1 ? file.file_name.substring(0, lastDotIndex) : file.file_name;
+                    if (baseName) {
                       form.setValue('title', baseName, { shouldDirty: true, shouldValidate: true });
                     }
                   }}
@@ -307,18 +314,11 @@ export const TrackEditForm: React.FC = () => {
                 render={({ field }) => (
                   <FormItem className="min-w-0">
                     <FormControl>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Input
-                            {...field}
-                            id="genre"
-                            readOnly={!isEditing}
-                            placeholder={isEditing ? "Thể loại..." : "Trống"}
-                            className={cn(inputClass, "truncate")}
-                          />
-                        </TooltipTrigger>
-                        {field.value && <TooltipContent>{field.value}</TooltipContent>}
-                      </Tooltip>
+                      <GenreSelect 
+                        value={field.value || ""} 
+                        onChange={field.onChange} 
+                        isEditing={isEditing} 
+                      />
                     </FormControl>
                   </FormItem>
                 )}

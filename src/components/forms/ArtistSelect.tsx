@@ -122,10 +122,10 @@ export const ArtistSelect: React.FC<ArtistSelectProps> = ({ value, onChange, isE
               <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-(--radix-popover-trigger-width) p-1 border border-white/10 bg-black/70 backdrop-blur-2xl shadow-[0_0_40px_rgba(0,0,0,0.8)] rounded-xl">
+          <PopoverContent align="start" className="min-w-60 w-(--radix-popover-trigger-width) p-1 border border-white/10 bg-black/70 backdrop-blur-2xl shadow-[0_0_40px_rgba(0,0,0,0.8)] rounded-xl">
             <Command shouldFilter={false}>
               <CommandInput
-                placeholder="Tìm kiếm nghệ sĩ..."
+                placeholder="Tìm hoặc thêm mới..."
                 value={mainSearch}
                 onValueChange={setMainSearch}
                 className="border-none focus:ring-0 text-zinc-100 placeholder:text-zinc-500 h-10"
@@ -217,10 +217,10 @@ export const ArtistSelect: React.FC<ArtistSelectProps> = ({ value, onChange, isE
               )}
             </div>
           </PopoverTrigger>
-          <PopoverContent className="w-(--radix-popover-trigger-width) p-1 border border-white/10 bg-black/70 backdrop-blur-2xl shadow-2xl rounded-xl">
+          <PopoverContent align="start" className="min-w-60 w-(--radix-popover-trigger-width) p-1 border border-white/10 bg-black/70 backdrop-blur-2xl shadow-2xl rounded-xl">
             <Command shouldFilter={false}>
               <CommandInput
-                placeholder="Tìm kiếm nghệ sĩ feat..."
+                placeholder="Tìm hoặc thêm mới..."
                 value={featSearch}
                 onValueChange={setFeatSearch}
                 className="border-none focus:ring-0 text-zinc-100 placeholder:text-zinc-500 h-10"
