@@ -73,19 +73,19 @@
   }
 
   .btn-gradient-brand {
-    @apply bg-linear-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white ! font-bold ! shadow-lg shadow-indigo-500/20 border-0 transition-all;
+    @apply bg-linear-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold shadow-lg shadow-indigo-500/20 border-0 transition-all;
   }
 
   .btn-gradient-primary {
-    @apply bg-linear-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white ! font-bold ! shadow-lg shadow-blue-500/20 border-0 transition-all;
+    @apply bg-linear-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold shadow-lg shadow-blue-500/20 border-0 transition-all;
   }
 
   .btn-gradient-success {
-    @apply bg-linear-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white ! font-bold ! shadow-lg shadow-emerald-500/20 border-0 transition-all;
+    @apply bg-linear-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold shadow-lg shadow-emerald-500/20 border-0 transition-all;
   }
 
   .btn-gradient-destructive {
-    @apply bg-linear-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white ! font-bold ! shadow-lg shadow-red-600/20 border-0 transition-all;
+    @apply bg-linear-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-bold shadow-lg shadow-red-600/20 border-0 transition-all;
   }
 
   .mask-fade-y {

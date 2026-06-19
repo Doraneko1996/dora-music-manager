@@ -12,6 +12,19 @@ interface TrackListProps {
 
 import { TruncatedTooltip } from './ui/truncated-tooltip';
 
+const parseArtist = (artistStr?: string | null) => {
+  let mainArtist = artistStr || 'Unknown';
+  let featArtist = '';
+  if (artistStr) {
+    const match = artistStr.match(/^(.*?)\s*(?:ft\.|feat\.|featuring)\s*(.*)$/i);
+    if (match) {
+      mainArtist = match[1];
+      featArtist = match[2];
+    }
+  }
+  return { mainArtist, featArtist };
+};
+
 export const TrackList: React.FC<TrackListProps> = ({ files, selectedEntityName, className, title = "Danh sách bài hát" }) => {
   const highlightArtist = (text: string) => {
     if (!selectedEntityName) return text;
@@ -43,15 +56,7 @@ export const TrackList: React.FC<TrackListProps> = ({ files, selectedEntityName,
             {files.map((f, i) => {
               const displayName = f.title || f.file_name;
               
-              let mainArtist = f.artist || 'Unknown';
-              let featArtist = '';
-              if (f.artist) {
-                const match = f.artist.match(/^(.*?)\s*(?:ft\.|feat\.|featuring)\s*(.*)$/i);
-                if (match) {
-                  mainArtist = match[1];
-                  featArtist = match[2];
-                }
-              }
+              const { mainArtist, featArtist } = parseArtist(f.artist);
 
               return (
                 <div key={f.file_path} className="flex items-center gap-3 px-3 py-2.5 rounded-lg group transition-all duration-300 border cursor-default relative overflow-hidden w-full min-w-0 row-hover-bg">

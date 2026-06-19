@@ -14,6 +14,8 @@ import { useVirtualizer } from '@tanstack/react-virtual';
 import { useAudioStore, AudioMetadata } from '../store/useAudioStore';
 import { Loader2, ListMusic, Filter, ArrowDownAZ, ArrowUpZA, X, FilterX, FileAudio, Activity, Users, Search } from 'lucide-react';
 import { AlphabetScroller } from './ui/alphabet-scroller';
+import { useAlphabetMap } from '../hooks/useAlphabetMap';
+import { useDataGridTooltip } from '../hooks/useDataGridTooltip';
 
 const getExtensionTextColor = (ext: string) => {
   switch (ext) {
@@ -49,75 +51,10 @@ import { Checkbox } from './ui/checkbox';
 export const DataGrid: React.FC = () => {
   const { musicFiles, selectedFiles, setSelectedFiles, isScanning, isEditing, directoryPath, searchQuery } = useAudioStore();
   const tableContainerRef = useRef<HTMLDivElement>(null);
-  const tooltipRef = useRef<HTMLDivElement>(null);
-  const tooltipTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const tooltipRef = useDataGridTooltip(tableContainerRef);
 
   const [isScrubbing, setIsScrubbing] = React.useState(false);
   const [isScrollerVisible, setIsScrollerVisible] = React.useState(false);
-
-  useEffect(() => {
-    const container = tableContainerRef.current;
-    if (!container) return;
-
-    const handleMouseOver = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      const tooltipEl = target.closest('[data-custom-tooltip]');
-
-      if (tooltipEl) {
-        const text = tooltipEl.getAttribute('data-custom-tooltip');
-        if (text) {
-          if (tooltipTimeoutRef.current) clearTimeout(tooltipTimeoutRef.current);
-          tooltipTimeoutRef.current = setTimeout(() => {
-            if (tooltipRef.current) {
-              const rect = tooltipEl.getBoundingClientRect();
-              tooltipRef.current.textContent = text;
-              tooltipRef.current.style.display = 'block';
-
-              const tooltipRect = tooltipRef.current.getBoundingClientRect();
-              let left = rect.left + rect.width / 2 - tooltipRect.width / 2;
-              let top = rect.bottom + 6;
-
-              if (left < 10) left = 10;
-              if (left + tooltipRect.width > window.innerWidth - 10) {
-                left = window.innerWidth - tooltipRect.width - 10;
-              }
-              if (top + tooltipRect.height > window.innerHeight - 10) {
-                top = rect.top - tooltipRect.height - 6;
-              }
-
-              tooltipRef.current.style.left = `${left}px`;
-              tooltipRef.current.style.top = `${top}px`;
-            }
-          }, 400);
-        }
-      }
-    };
-
-    const handleMouseOut = () => {
-      if (tooltipTimeoutRef.current) clearTimeout(tooltipTimeoutRef.current);
-      if (tooltipRef.current) {
-        tooltipRef.current.style.display = 'none';
-      }
-    };
-
-    const handleScroll = () => {
-      if (tooltipTimeoutRef.current) clearTimeout(tooltipTimeoutRef.current);
-      if (tooltipRef.current) {
-        tooltipRef.current.style.display = 'none';
-      }
-    };
-
-    container.addEventListener('mouseover', handleMouseOver);
-    container.addEventListener('mouseout', handleMouseOut);
-    container.addEventListener('scroll', handleScroll);
-
-    return () => {
-      container.removeEventListener('mouseover', handleMouseOver);
-      container.removeEventListener('mouseout', handleMouseOut);
-      container.removeEventListener('scroll', handleScroll);
-      if (tooltipTimeoutRef.current) clearTimeout(tooltipTimeoutRef.current);
-    };
-  }, []);
 
   const filteredMusicFiles = useMemo(() => {
     if (!searchQuery) return musicFiles;
@@ -378,25 +315,12 @@ export const DataGrid: React.FC = () => {
   const { rows } = table.getRowModel();
 
   // Tạo từ điển ánh xạ từ Chữ cái -> Chỉ số dòng đầu tiên
-  const alphabetMap = useMemo(() => {
-    const map = new Map<string, number>();
-    const sortedColumnId = sorting.length > 0 ? sorting[0].id : 'file_name';
-
-    rows.forEach((row, index) => {
-      let val = row.getValue(sortedColumnId) as string;
-      if (!val) return;
-
-      let firstChar = val.charAt(0).toUpperCase();
-      if (!/[A-Z]/.test(firstChar)) {
-        firstChar = '#'; // Gom nhóm số và ký hiệu thành #
-      }
-
-      if (!map.has(firstChar)) {
-        map.set(firstChar, index);
-      }
-    });
-    return map;
-  }, [rows, sorting]);
+  const sortedColumnId = sorting.length > 0 ? sorting[0].id : 'file_name';
+  const alphabetMap = useAlphabetMap(
+    rows,
+    (row) => row.getValue(sortedColumnId) as string,
+    [sorting]
+  );
 
   const rowVirtualizer = useVirtualizer({
     count: rows.length,
@@ -521,28 +445,28 @@ export const DataGrid: React.FC = () => {
                                   <Filter size={13} strokeWidth={2.5} />}
                             </button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-56 bg-zinc-950/95 border-white/10 backdrop-blur-xl shadow-xl shadow-black/80 text-zinc-300 p-1.5 rounded-xl z-50">
+                          <DropdownMenuContent align="end" className="w-56">
 
-                            <DropdownMenuLabel className="text-[10px] text-zinc-500 uppercase tracking-widest px-2 py-1.5 font-bold">
+                            <DropdownMenuLabel>
                               Sắp xếp
                             </DropdownMenuLabel>
                             <DropdownMenuItem
-                              className="text-xs focus:bg-indigo-500/20 focus:text-indigo-300 cursor-pointer rounded-lg px-2 py-2"
+                              className={header.column.getIsSorted() === 'asc' ? "bg-indigo-500/10 border-indigo-500/30 text-white shadow-md shadow-indigo-500/5 font-bold" : ""}
                               onClick={() => header.column.toggleSorting(false)}
                             >
-                              <ArrowDownAZ size={14} className={`mr-2 ${header.column.getIsSorted() === 'asc' ? 'opacity-100 text-indigo-400' : 'opacity-70'}`} />
-                              <span className={header.column.getIsSorted() === 'asc' ? "text-indigo-400 font-bold" : ""}>Từ A đến Z</span>
+                              <ArrowDownAZ size={14} className={`mr-2 ${header.column.getIsSorted() === 'asc' ? 'opacity-100' : 'opacity-70'}`} />
+                              <span>Từ A đến Z</span>
                             </DropdownMenuItem>
                             <DropdownMenuItem
-                              className="text-xs focus:bg-indigo-500/20 focus:text-indigo-300 cursor-pointer rounded-lg px-2 py-2"
+                              className={header.column.getIsSorted() === 'desc' ? "bg-indigo-500/10 border-indigo-500/30 text-white shadow-md shadow-indigo-500/5 font-bold" : ""}
                               onClick={() => header.column.toggleSorting(true)}
                             >
-                              <ArrowUpZA size={14} className={`mr-2 ${header.column.getIsSorted() === 'desc' ? 'opacity-100 text-indigo-400' : 'opacity-70'}`} />
-                              <span className={header.column.getIsSorted() === 'desc' ? "text-indigo-400 font-bold" : ""}>Từ Z đến A</span>
+                              <ArrowUpZA size={14} className={`mr-2 ${header.column.getIsSorted() === 'desc' ? 'opacity-100' : 'opacity-70'}`} />
+                              <span>Từ Z đến A</span>
                             </DropdownMenuItem>
                             {header.column.getIsSorted() && (
                               <DropdownMenuItem
-                                className="text-xs text-rose-400 focus:bg-rose-500/10 focus:text-rose-300 cursor-pointer rounded-lg px-2 py-2 mt-1"
+                                className="text-rose-400 focus:from-rose-500/0 focus:to-rose-500/15 mt-1"
                                 onClick={() => header.column.clearSorting()}
                               >
                                 <X size={14} className="mr-2 opacity-70" />
@@ -550,15 +474,15 @@ export const DataGrid: React.FC = () => {
                               </DropdownMenuItem>
                             )}
 
-                            <DropdownMenuSeparator className="bg-white/5 my-1.5" />
+                            <DropdownMenuSeparator />
 
-                            <DropdownMenuLabel className="text-[10px] text-zinc-500 uppercase tracking-widest px-2 py-1.5 font-bold">
+                            <DropdownMenuLabel>
                               Lọc dữ liệu
                             </DropdownMenuLabel>
                             {header.id === 'file_name' ? (
                               <>
                                 <DropdownMenuSub>
-                                  <DropdownMenuSubTrigger className="text-xs focus:bg-indigo-500/20 focus:text-indigo-300 data-[state=open]:bg-indigo-500/20 data-[state=open]:text-indigo-300 cursor-pointer rounded-lg px-2 py-2">
+                                  <DropdownMenuSubTrigger className={((header.column.getFilterValue() as any)?.types?.length > 0) ? "bg-indigo-500/10 border-indigo-500/30 text-white shadow-md shadow-indigo-500/5 font-bold" : ""}>
                                     <FileAudio size={14} className="mr-2 opacity-70 shrink-0" />
                                     <span className="flex-1">Loại File</span>
                                     {((header.column.getFilterValue() as any)?.types?.length > 0) && (
@@ -568,7 +492,7 @@ export const DataGrid: React.FC = () => {
                                     )}
                                   </DropdownMenuSubTrigger>
                                   <DropdownMenuPortal>
-                                    <DropdownMenuSubContent className="bg-zinc-950/95 border-white/10 backdrop-blur-xl shadow-xl shadow-black/80 text-zinc-300 p-1.5 rounded-xl z-50 min-w-32">
+                                    <DropdownMenuSubContent className="min-w-32">
                                       {availableExtensions.map(ext => {
                                         const currentFilters = header.column.getFilterValue() as any || { types: [], bitrates: [] };
                                         const isChecked = currentFilters.types?.includes(ext);
@@ -588,7 +512,7 @@ export const DataGrid: React.FC = () => {
                                                 header.column.setFilterValue(newFilter);
                                               }
                                             }}
-                                            className="text-xs focus:bg-indigo-500/20 focus:text-indigo-300 cursor-pointer rounded-lg px-2 py-2 [&>span.absolute]:hidden"
+                                            className="[&>span.absolute]:hidden"
                                           >
                                             <span className={`font-semibold ${getExtensionTextColor(ext)}`}>{ext}</span>
                                           </DropdownMenuCheckboxItem>
@@ -599,7 +523,7 @@ export const DataGrid: React.FC = () => {
                                 </DropdownMenuSub>
 
                                 <DropdownMenuSub>
-                                  <DropdownMenuSubTrigger className="text-xs focus:bg-indigo-500/20 focus:text-indigo-300 data-[state=open]:bg-indigo-500/20 data-[state=open]:text-indigo-300 cursor-pointer rounded-lg px-2 py-2">
+                                  <DropdownMenuSubTrigger className={((header.column.getFilterValue() as any)?.bitrates?.length > 0) ? "bg-indigo-500/10 border-indigo-500/30 text-white shadow-md shadow-indigo-500/5 font-bold" : ""}>
                                     <Activity size={14} className="mr-2 opacity-70 shrink-0" />
                                     <span className="flex-1">Bitrate</span>
                                     {((header.column.getFilterValue() as any)?.bitrates?.length > 0) && (
@@ -609,7 +533,7 @@ export const DataGrid: React.FC = () => {
                                     )}
                                   </DropdownMenuSubTrigger>
                                   <DropdownMenuPortal>
-                                    <DropdownMenuSubContent className="bg-zinc-950/95 border-white/10 backdrop-blur-xl shadow-xl shadow-black/80 text-zinc-300 p-1.5 rounded-xl z-50 min-w-48">
+                                    <DropdownMenuSubContent className="min-w-48">
                                       {[
                                         { id: '>320', label: 'Lossless (> 320 kbps)' },
                                         { id: '320', label: 'High Quality (320 kbps)' },
@@ -634,7 +558,7 @@ export const DataGrid: React.FC = () => {
                                                 header.column.setFilterValue(newFilter);
                                               }
                                             }}
-                                            className="text-xs focus:bg-indigo-500/20 focus:text-indigo-300 cursor-pointer rounded-lg px-2 py-2 [&>span.absolute]:hidden"
+                                            className="[&>span.absolute]:hidden"
                                           >
                                             <span className={isChecked ? "text-indigo-400 font-bold" : ""}>{br.label}</span>
                                           </DropdownMenuCheckboxItem>
@@ -643,7 +567,7 @@ export const DataGrid: React.FC = () => {
                                     </DropdownMenuSubContent>
                                   </DropdownMenuPortal>
                                 </DropdownMenuSub>
-                                <DropdownMenuSeparator className="bg-white/5 my-1.5" />
+                                <DropdownMenuSeparator />
                                 <DropdownMenuCheckboxItem
                                   checked={(header.column.getFilterValue() as any)?.emptyState === 'NOT_EMPTY'}
                                   onCheckedChange={() => {
@@ -653,9 +577,9 @@ export const DataGrid: React.FC = () => {
                                     if (!newFilter.types?.length && !newFilter.bitrates?.length && !newFilter.emptyState) header.column.setFilterValue(undefined);
                                     else header.column.setFilterValue(newFilter);
                                   }}
-                                  className="text-xs focus:bg-emerald-500/20 focus:text-emerald-300 cursor-pointer rounded-lg px-2 py-2 [&>span.absolute]:hidden"
+                                  className="focus:from-emerald-500/0 focus:to-emerald-500/15 data-[state=checked]:bg-emerald-500/10 data-[state=checked]:border-emerald-500/30 data-[state=checked]:shadow-emerald-500/5 [&>span.absolute]:hidden"
                                 >
-                                  <span className={(header.column.getFilterValue() as any)?.emptyState === 'NOT_EMPTY' ? "text-emerald-400 font-bold" : ""}>Có dữ liệu</span>
+                                  <span className={(header.column.getFilterValue() as any)?.emptyState === 'NOT_EMPTY' ? "font-bold" : ""}>Có dữ liệu</span>
                                 </DropdownMenuCheckboxItem>
                                 <DropdownMenuCheckboxItem
                                   checked={(header.column.getFilterValue() as any)?.emptyState === 'EMPTY'}
@@ -666,15 +590,15 @@ export const DataGrid: React.FC = () => {
                                     if (!newFilter.types?.length && !newFilter.bitrates?.length && !newFilter.emptyState) header.column.setFilterValue(undefined);
                                     else header.column.setFilterValue(newFilter);
                                   }}
-                                  className="text-xs focus:bg-amber-500/20 focus:text-amber-300 cursor-pointer rounded-lg px-2 py-2 [&>span.absolute]:hidden"
+                                  className="focus:from-amber-500/0 focus:to-amber-500/15 data-[state=checked]:bg-amber-500/10 data-[state=checked]:border-amber-500/30 data-[state=checked]:shadow-amber-500/5 [&>span.absolute]:hidden"
                                 >
-                                  <span className={(header.column.getFilterValue() as any)?.emptyState === 'EMPTY' ? "text-amber-400 font-bold" : ""}>Không có dữ liệu</span>
+                                  <span className={(header.column.getFilterValue() as any)?.emptyState === 'EMPTY' ? "font-bold" : ""}>Không có dữ liệu</span>
                                 </DropdownMenuCheckboxItem>
                               </>
                             ) : header.id === 'artist' ? (
                               <>
                                 <DropdownMenuSub>
-                                  <DropdownMenuSubTrigger className="text-xs focus:bg-indigo-500/20 focus:text-indigo-300 data-[state=open]:bg-indigo-500/20 data-[state=open]:text-indigo-300 cursor-pointer rounded-lg px-2 py-2">
+                                  <DropdownMenuSubTrigger className={((header.column.getFilterValue() as any)?.collabTypes?.length > 0) ? "bg-indigo-500/10 border-indigo-500/30 text-white shadow-md shadow-indigo-500/5 font-bold" : ""}>
                                     <Users size={14} className="mr-2 opacity-70 shrink-0" />
                                     <span className="flex-1">Hợp tác (Featuring)</span>
                                     {((header.column.getFilterValue() as any)?.collabTypes?.length > 0) && (
@@ -684,7 +608,7 @@ export const DataGrid: React.FC = () => {
                                     )}
                                   </DropdownMenuSubTrigger>
                                   <DropdownMenuPortal>
-                                    <DropdownMenuSubContent className="bg-zinc-950/95 border-white/10 backdrop-blur-xl shadow-xl shadow-black/80 text-zinc-300 p-1.5 rounded-xl z-50 min-w-40">
+                                    <DropdownMenuSubContent className="min-w-40">
                                       {[
                                         { id: 'solo', label: 'Hát đơn (Solo)' },
                                         { id: 'collab', label: 'Có kết hợp (Featuring)' },
@@ -707,7 +631,7 @@ export const DataGrid: React.FC = () => {
                                                 header.column.setFilterValue(newFilter);
                                               }
                                             }}
-                                            className="text-xs focus:bg-indigo-500/20 focus:text-indigo-300 cursor-pointer rounded-lg px-2 py-2 [&>span.absolute]:hidden"
+                                            className="[&>span.absolute]:hidden"
                                           >
                                             <span className={isChecked ? "text-indigo-400 font-bold" : ""}>{type.label}</span>
                                           </DropdownMenuCheckboxItem>
@@ -716,7 +640,7 @@ export const DataGrid: React.FC = () => {
                                     </DropdownMenuSubContent>
                                   </DropdownMenuPortal>
                                 </DropdownMenuSub>
-                                <DropdownMenuSeparator className="bg-white/5 my-1.5" />
+                                <DropdownMenuSeparator />
                                 <DropdownMenuCheckboxItem
                                   checked={(header.column.getFilterValue() as any)?.emptyState === 'NOT_EMPTY'}
                                   onCheckedChange={() => {
@@ -726,9 +650,9 @@ export const DataGrid: React.FC = () => {
                                     if (!newFilter.collabTypes?.length && !newFilter.emptyState) header.column.setFilterValue(undefined);
                                     else header.column.setFilterValue(newFilter);
                                   }}
-                                  className="text-xs focus:bg-emerald-500/20 focus:text-emerald-300 cursor-pointer rounded-lg px-2 py-2 [&>span.absolute]:hidden"
+                                  className="focus:from-emerald-500/0 focus:to-emerald-500/15 data-[state=checked]:bg-emerald-500/10 data-[state=checked]:border-emerald-500/30 data-[state=checked]:shadow-emerald-500/5 [&>span.absolute]:hidden"
                                 >
-                                  <span className={(header.column.getFilterValue() as any)?.emptyState === 'NOT_EMPTY' ? "text-emerald-400 font-bold" : ""}>Có dữ liệu</span>
+                                  <span className={(header.column.getFilterValue() as any)?.emptyState === 'NOT_EMPTY' ? "font-bold" : ""}>Có dữ liệu</span>
                                 </DropdownMenuCheckboxItem>
                                 <DropdownMenuCheckboxItem
                                   checked={(header.column.getFilterValue() as any)?.emptyState === 'EMPTY'}
@@ -739,9 +663,9 @@ export const DataGrid: React.FC = () => {
                                     if (!newFilter.collabTypes?.length && !newFilter.emptyState) header.column.setFilterValue(undefined);
                                     else header.column.setFilterValue(newFilter);
                                   }}
-                                  className="text-xs focus:bg-amber-500/20 focus:text-amber-300 cursor-pointer rounded-lg px-2 py-2 [&>span.absolute]:hidden"
+                                  className="focus:from-amber-500/0 focus:to-amber-500/15 data-[state=checked]:bg-amber-500/10 data-[state=checked]:border-amber-500/30 data-[state=checked]:shadow-amber-500/5 [&>span.absolute]:hidden"
                                 >
-                                  <span className={(header.column.getFilterValue() as any)?.emptyState === 'EMPTY' ? "text-amber-400 font-bold" : ""}>Không có dữ liệu</span>
+                                  <span className={(header.column.getFilterValue() as any)?.emptyState === 'EMPTY' ? "font-bold" : ""}>Không có dữ liệu</span>
                                 </DropdownMenuCheckboxItem>
                               </>
                             ) : (
@@ -755,9 +679,9 @@ export const DataGrid: React.FC = () => {
                                       header.column.setFilterValue('NOT_EMPTY');
                                     }
                                   }}
-                                  className="text-xs focus:bg-emerald-500/20 focus:text-emerald-300 cursor-pointer rounded-lg px-2 py-2 [&>span.absolute]:hidden"
+                                  className="focus:from-emerald-500/0 focus:to-emerald-500/15 data-[state=checked]:bg-emerald-500/10 data-[state=checked]:border-emerald-500/30 data-[state=checked]:shadow-emerald-500/5 [&>span.absolute]:hidden"
                                 >
-                                  <span className={header.column.getFilterValue() === 'NOT_EMPTY' ? "text-emerald-400 font-bold" : ""}>Có dữ liệu</span>
+                                  <span className={header.column.getFilterValue() === 'NOT_EMPTY' ? "font-bold" : ""}>Có dữ liệu</span>
                                 </DropdownMenuCheckboxItem>
                                 <DropdownMenuCheckboxItem
                                   checked={header.column.getFilterValue() === 'EMPTY'}
@@ -768,16 +692,16 @@ export const DataGrid: React.FC = () => {
                                       header.column.setFilterValue('EMPTY');
                                     }
                                   }}
-                                  className="text-xs focus:bg-amber-500/20 focus:text-amber-300 cursor-pointer rounded-lg px-2 py-2 [&>span.absolute]:hidden"
+                                  className="focus:from-amber-500/0 focus:to-amber-500/15 data-[state=checked]:bg-amber-500/10 data-[state=checked]:border-amber-500/30 data-[state=checked]:shadow-amber-500/5 [&>span.absolute]:hidden"
                                 >
-                                  <span className={header.column.getFilterValue() === 'EMPTY' ? "text-amber-400 font-bold" : ""}>Không có dữ liệu</span>
+                                  <span className={header.column.getFilterValue() === 'EMPTY' ? "font-bold" : ""}>Không có dữ liệu</span>
                                 </DropdownMenuCheckboxItem>
                               </>
                             )}
 
                             {Boolean(header.column.getFilterValue()) && (
                               <DropdownMenuItem
-                                className="text-xs text-rose-400 focus:bg-rose-500/10 focus:text-rose-300 cursor-pointer rounded-lg px-2 py-2 mt-1"
+                                className="text-rose-400 focus:from-rose-500/0 focus:to-rose-500/15 mt-1"
                                 onClick={() => header.column.setFilterValue(undefined)}
                               >
                                 <FilterX size={14} className="mr-2 opacity-70" />

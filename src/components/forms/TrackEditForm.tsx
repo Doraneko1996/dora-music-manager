@@ -194,7 +194,27 @@ export const TrackEditForm: React.FC = () => {
       <div className="flex flex-col gap-4 w-full h-full min-h-0">
         <div className="flex flex-col gap-4 flex-1 min-h-[50%] shrink-0 overflow-y-auto custom-scrollbar pr-2 py-4 -my-4 mask-fade-y min-w-0">
           <div className="grid gap-2 min-w-0">
-            <Label htmlFor="title" className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Title</Label>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="title" className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Title</Label>
+              {isEditing && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const file = musicFiles.find(f => f.file_path === selectedFiles[0]);
+                    if (file && file.file_name) {
+                      const lastDotIndex = file.file_name.lastIndexOf('.');
+                      const baseName = lastDotIndex !== -1 ? file.file_name.substring(0, lastDotIndex) : file.file_name;
+                      form.setValue('title', baseName, { shouldDirty: true, shouldValidate: true });
+                    }
+                  }}
+                  className="text-[11px] font-medium text-indigo-200 hover:text-white transition-all flex items-center gap-1.5 cursor-pointer bg-indigo-500/20 hover:bg-indigo-500/40 px-2.5 py-1 rounded-md border border-indigo-500/30 shadow-sm hover:shadow-indigo-500/20"
+                  title="Lấy tên file làm tiêu đề"
+                >
+                  <FileText size={10} />
+                  Dùng tên file
+                </button>
+              )}
+            </div>
             <FormField
               control={control}
               name="title"
