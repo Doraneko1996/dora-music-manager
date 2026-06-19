@@ -11,24 +11,24 @@ import { convertFileSrc } from '@tauri-apps/api/core';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { AlphabetScroller } from './ui/alphabet-scroller';
 
-type AlbumVirtualRow = 
+type AlbumVirtualRow =
   | { type: 'header'; letter: string; }
   | { type: 'grid-row'; albums: AlbumInfo[]; };
 
 export const LibraryView: React.FC = () => {
-  const { 
-    musicFiles, 
-    aggregatedData, 
-    directoryPath, 
-    setSelectedFiles, 
-    activeTab, 
-    setActiveTab, 
-    isEditing, 
-    selectedEntityName, 
-    setSelectedEntityName, 
-    gridColumns, 
-    setGridColumns, 
-    searchQuery, 
+  const {
+    musicFiles,
+    aggregatedData,
+    directoryPath,
+    setSelectedFiles,
+    activeTab,
+    setActiveTab,
+    isEditing,
+    selectedEntityName,
+    setSelectedEntityName,
+    gridColumns,
+    setGridColumns,
+    searchQuery,
     setSearchQuery,
     isScanning,
     refreshData
@@ -43,17 +43,17 @@ export const LibraryView: React.FC = () => {
 
   const albumVirtualRows = React.useMemo(() => {
     if (!aggregatedData?.albums) return [];
-    
+
     // 1. Filter
-    const filtered = aggregatedData.albums.filter(album => 
+    const filtered = aggregatedData.albums.filter(album =>
       album.album_name.toLowerCase().includes(searchQuery.toLowerCase())
     );
-    
+
     if (filtered.length === 0) return [];
-    
+
     // 2. Sort A-Z
     filtered.sort((a, b) => a.album_name.localeCompare(b.album_name));
-    
+
     // 3. Group by first letter
     const groups = new Map<string, AlbumInfo[]>();
     filtered.forEach(album => {
@@ -66,26 +66,26 @@ export const LibraryView: React.FC = () => {
       }
       groups.get(letter)!.push(album);
     });
-    
+
     // 4. Flatten into rows
     const rows: AlbumVirtualRow[] = [];
-    
+
     // Ensure # comes first, then A-Z
     const sortedKeys = Array.from(groups.keys()).sort((a, b) => {
       if (a === '#') return -1;
       if (b === '#') return 1;
       return a.localeCompare(b);
     });
-    
+
     sortedKeys.forEach(letter => {
       rows.push({ type: 'header', letter });
-      
+
       const albumsInGroup = groups.get(letter)!;
       for (let i = 0; i < albumsInGroup.length; i += gridColumns) {
         rows.push({ type: 'grid-row', albums: albumsInGroup.slice(i, i + gridColumns) });
       }
     });
-    
+
     return rows;
   }, [aggregatedData?.albums, searchQuery, gridColumns]);
 
@@ -176,9 +176,8 @@ export const LibraryView: React.FC = () => {
 
   return (
     <div className="flex-1 flex flex-col h-full w-full relative">
-      <LockOverlay isLocked={isEditing} />
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col h-full w-full absolute inset-0">
-        
+
         {/* Tabs Header */}
         <div className="z-50 px-4 py-3 border-b border-white/5 bg-black/40 flex flex-wrap items-center justify-between gap-3 shrink-0">
           <TabsList className="bg-zinc-950/80 shadow-lg shadow-black/20 border border-white/10 rounded-lg p-1">
@@ -204,7 +203,7 @@ export const LibraryView: React.FC = () => {
                 placeholder="Tìm kiếm..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 h-[38px] w-full sm:w-48 lg:w-56 focus:w-full sm:focus:w-60 lg:focus:w-72 bg-zinc-950/80 shadow-lg shadow-black/20 border-white/10 text-zinc-200 focus-visible:ring-1 focus-visible:ring-indigo-500/50 focus-visible:border-indigo-500 focus-visible:bg-zinc-900/80 rounded-lg transition-all"
+                className="pl-9 h-9.5 w-full sm:w-48 lg:w-56 focus:w-full sm:focus:w-60 lg:focus:w-72 bg-zinc-950/80 shadow-lg shadow-black/20 border-white/10 text-zinc-200 focus-visible:ring-1 focus-visible:ring-indigo-500/50 focus-visible:border-indigo-500 focus-visible:bg-zinc-900/80 rounded-lg transition-all"
               />
             </div>
 
@@ -215,7 +214,7 @@ export const LibraryView: React.FC = () => {
                   size="icon"
                   onClick={refreshData}
                   disabled={isScanning || !directoryPath}
-                  className="h-[38px] w-[38px] bg-zinc-950/80 border-white/10 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/80 rounded-lg shadow-lg shadow-black/20"
+                  className="h-9.5 w-9.5 bg-zinc-950/80 border-white/10 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/80 rounded-lg shadow-lg shadow-black/20"
                 >
                   <RefreshCw size={16} className={isScanning ? "animate-spin text-indigo-400" : ""} />
                 </Button>
@@ -223,20 +222,20 @@ export const LibraryView: React.FC = () => {
               <TooltipContent>Làm mới dữ liệu</TooltipContent>
             </Tooltip>
 
-          {/* Grid Size Control (Only show when on albums tab) */}
-          {activeTab === 'albums' && (
-            <div className="flex items-center gap-1.5 bg-black/30 p-1 rounded-lg border border-white/5">
-              {[5, 6, 7].map(num => (
-                <button
-                  key={num}
-                  onClick={() => setGridColumns(num)}
-                  className={`px-2.5 py-1 rounded text-[11px] font-bold transition-all ${gridColumns === num ? 'bg-indigo-600 text-white shadow-md' : 'text-zinc-500 hover:text-zinc-300 hover:bg-white/5'}`}
-                >
-                  {num}
-                </button>
-              ))}
-            </div>
-          )}
+            {/* Grid Size Control (Only show when on albums tab) */}
+            {activeTab === 'albums' && (
+              <div className="flex items-center gap-1.5 bg-black/30 p-1 rounded-lg border border-white/5">
+                {[5, 6, 7].map(num => (
+                  <button
+                    key={num}
+                    onClick={() => setGridColumns(num)}
+                    className={`px-2.5 py-1 rounded text-[11px] font-bold transition-all ${gridColumns === num ? 'bg-indigo-600 text-white shadow-md' : 'text-zinc-500 hover:text-zinc-300 hover:bg-white/5'}`}
+                  >
+                    {num}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
@@ -256,7 +255,7 @@ export const LibraryView: React.FC = () => {
                 <p>Không tìm thấy album nào phù hợp</p>
               </div>
             ) : (
-              <div 
+              <div
                 className="flex-1 w-full h-full relative"
                 onPointerMove={(e) => {
                   if (isAlbumScrubbing) return;
@@ -277,17 +276,17 @@ export const LibraryView: React.FC = () => {
                   if (!isAlbumScrubbing) setIsAlbumScrollerVisible(false);
                 }}
               >
-                <AlphabetScroller 
+                <AlphabetScroller
                   alphabetMap={albumAlphabetMap}
                   onScrollTo={(index) => albumRowVirtualizer.scrollToIndex(index, { align: 'start' })}
                   isVisible={isAlbumScrollerVisible}
                   onScrubStateChange={setIsAlbumScrubbing}
                   className="right-6 top-6 bottom-6"
                 />
-                
+
                 <div
                   ref={albumContainerRef}
-                  className="overflow-auto custom-scrollbar w-full h-full px-6 pb-6 pt-6"
+                  className="overflow-auto custom-scrollbar w-full h-full px-6 pb-6 pt-6 mask-fade-y"
                 >
                   <div style={{ height: `${albumRowVirtualizer.getTotalSize()}px`, position: 'relative', width: '100%' }}>
                     <div
@@ -301,10 +300,10 @@ export const LibraryView: React.FC = () => {
                     >
                       {albumRowVirtualizer.getVirtualItems().map((virtualRow) => {
                         const rowData = albumVirtualRows[virtualRow.index];
-                        
+
                         if (rowData.type === 'header') {
                           return (
-                            <div 
+                            <div
                               key={virtualRow.key}
                               data-index={virtualRow.index}
                               ref={albumRowVirtualizer.measureElement}
@@ -314,9 +313,9 @@ export const LibraryView: React.FC = () => {
                             </div>
                           );
                         }
-                        
+
                         return (
-                          <div 
+                          <div
                             key={virtualRow.key}
                             data-index={virtualRow.index}
                             ref={albumRowVirtualizer.measureElement}
@@ -330,8 +329,8 @@ export const LibraryView: React.FC = () => {
                                 const isSelected = selectedEntityName === album.album_name;
 
                                 return (
-                                  <div 
-                                    key={idx} 
+                                  <div
+                                    key={idx}
                                     className="group flex flex-col cursor-pointer min-w-0 relative"
                                     onClick={() => handleAlbumClick(album.album_name)}
                                   >
@@ -344,10 +343,10 @@ export const LibraryView: React.FC = () => {
                                         </div>
                                       )}
                                       {!isSelected && (
-                                        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-white/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
+                                        <div className="absolute inset-0 bg-linear-to-t from-black/50 via-transparent to-white/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
                                       )}
                                       {isSelected && (
-                                        <div className="absolute inset-0 bg-gradient-to-t from-indigo-900/40 via-transparent to-indigo-400/20 opacity-100 pointer-events-none"></div>
+                                        <div className="absolute inset-0 bg-linear-to-t from-indigo-900/40 via-transparent to-indigo-400/20 opacity-100 pointer-events-none"></div>
                                       )}
                                     </div>
                                     <Tooltip>
@@ -387,7 +386,7 @@ export const LibraryView: React.FC = () => {
                 <p>Không tìm thấy nghệ sĩ nào phù hợp</p>
               </div>
             ) : (
-              <div 
+              <div
                 className="flex-1 w-full h-full relative"
                 onPointerMove={(e) => {
                   if (isArtistScrubbing) return;
@@ -409,7 +408,7 @@ export const LibraryView: React.FC = () => {
                   if (!isArtistScrubbing) setIsArtistScrollerVisible(false);
                 }}
               >
-                <AlphabetScroller 
+                <AlphabetScroller
                   alphabetMap={artistAlphabetMap}
                   onScrollTo={(index) => artistRowVirtualizer.scrollToIndex(index, { align: 'start' })}
                   isVisible={isArtistScrollerVisible}
@@ -418,7 +417,7 @@ export const LibraryView: React.FC = () => {
                 />
                 <div
                   ref={artistContainerRef}
-                  className="overflow-auto custom-scrollbar w-full h-full px-6 pb-6 pt-6"
+                  className="overflow-auto custom-scrollbar w-full h-full px-6 pb-6 pt-6 mask-fade-y"
                 >
                   <div style={{ height: `${artistRowVirtualizer.getTotalSize()}px`, position: 'relative', width: '100%' }}>
                     <div
@@ -434,7 +433,7 @@ export const LibraryView: React.FC = () => {
                         const artist = filteredArtists[virtualRow.index];
                         const isSelected = selectedEntityName === artist;
                         return (
-                          <div 
+                          <div
                             key={virtualRow.key}
                             data-index={virtualRow.index}
                             ref={artistRowVirtualizer.measureElement}
@@ -469,50 +468,49 @@ export const LibraryView: React.FC = () => {
 
         {/* Tab 4: Genres */}
         <TabsContent value="genres" className="flex-1 overflow-y-auto custom-scrollbar m-0 data-[state=active]:flex flex-col px-4 pb-4 pt-4">
-           {aggregatedData?.genres && aggregatedData.genres.length > 0 ? (() => {
-             const filteredGenres = aggregatedData.genres.filter(genre =>
-               genre.toLowerCase().includes(searchQuery.toLowerCase())
-             );
+          {aggregatedData?.genres && aggregatedData.genres.length > 0 ? (() => {
+            const filteredGenres = aggregatedData.genres.filter(genre =>
+              genre.toLowerCase().includes(searchQuery.toLowerCase())
+            );
 
-             if (filteredGenres.length === 0) {
-               return (
-                 <div className="flex-1 flex flex-col items-center justify-center text-zinc-500 gap-4">
-                   <Search size={48} className="opacity-20" />
-                   <p>Không tìm thấy thể loại nào phù hợp</p>
-                 </div>
-               );
-             }
+            if (filteredGenres.length === 0) {
+              return (
+                <div className="flex-1 flex flex-col items-center justify-center text-zinc-500 gap-4">
+                  <Search size={48} className="opacity-20" />
+                  <p>Không tìm thấy thể loại nào phù hợp</p>
+                </div>
+              );
+            }
 
-             return (
-               <div className="flex flex-wrap gap-3 content-start">
-                 {filteredGenres.map((genre, idx) => {
-                   const isSelected = selectedEntityName === genre;
-                   return (
-                     <div 
-                       key={idx}
-                       onClick={() => handleGenreClick(genre)}
-                       className={`px-4 py-2 border cursor-pointer rounded-full transition-all duration-300 flex items-center gap-2 group backdrop-blur-xl ${
-                         isSelected 
-                           ? 'bg-indigo-500/40 border-indigo-400 shadow-[0_0_20px_rgba(99,102,241,0.5)] text-white' 
-                           : 'bg-zinc-800/60 border-white/10 hover:border-indigo-400/50 hover:bg-indigo-500/20 text-zinc-200 hover:text-white hover:shadow-[0_0_15px_rgba(99,102,241,0.3)]'
-                       }`}
-                     >
-                       <Tag size={14} className={`transition-colors duration-300 ${isSelected ? 'text-indigo-200' : 'text-zinc-400 group-hover:text-indigo-300'}`} />
-                       <span className="font-medium text-[13px] tracking-wide">{genre}</span>
-                     </div>
-                   );
-                 })}
-               </div>
-             );
-           })() : (
-             <div className="flex-1 flex flex-col items-center justify-center text-zinc-500 gap-4">
-               <Tag size={48} className="opacity-20" />
-               <p>Chưa có dữ liệu Thể loại</p>
-             </div>
-           )}
+            return (
+              <div className="flex flex-wrap gap-3 content-start">
+                {filteredGenres.map((genre, idx) => {
+                  const isSelected = selectedEntityName === genre;
+                  return (
+                    <div
+                      key={idx}
+                      onClick={() => handleGenreClick(genre)}
+                      className={`px-4 py-2 border cursor-pointer rounded-full transition-all duration-300 flex items-center gap-2 group backdrop-blur-xl ${isSelected
+                          ? 'bg-indigo-500/40 border-indigo-400 shadow-[0_0_20px_rgba(99,102,241,0.5)] text-white'
+                          : 'bg-zinc-800/60 border-white/10 hover:border-indigo-400/50 hover:bg-indigo-500/20 text-zinc-200 hover:text-white hover:shadow-[0_0_15px_rgba(99,102,241,0.3)]'
+                        }`}
+                    >
+                      <Tag size={14} className={`transition-colors duration-300 ${isSelected ? 'text-indigo-200' : 'text-zinc-400 group-hover:text-indigo-300'}`} />
+                      <span className="font-medium text-[13px] tracking-wide">{genre}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })() : (
+            <div className="flex-1 flex flex-col items-center justify-center text-zinc-500 gap-4">
+              <Tag size={48} className="opacity-20" />
+              <p>Chưa có dữ liệu Thể loại</p>
+            </div>
+          )}
         </TabsContent>
-
       </Tabs>
+      <LockOverlay isLocked={isEditing} className="z-100" />
     </div>
   );
 };

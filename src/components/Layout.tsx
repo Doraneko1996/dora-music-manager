@@ -17,7 +17,7 @@ export const Layout: React.FC = () => {
   const {
     musicFiles,
     directoryPath, setDirectoryPath,
-    setMusicFiles, setAggregatedData, isScanning, setIsScanning, isSyncing
+    setMusicFiles, setAggregatedData, isScanning, setIsScanning, isSyncing, resetStore
   } = useAudioStore();
 
   useFileSystemWatcher(directoryPath);
@@ -49,27 +49,25 @@ export const Layout: React.FC = () => {
   };
 
   const handleCloseFolder = () => {
-    setDirectoryPath('');
-    setMusicFiles([]);
-    setAggregatedData(null);
+    resetStore();
   };
 
   return (
     <div className="flex flex-col h-screen w-screen bg-zinc-950 text-zinc-100 overflow-hidden font-sans selection:bg-indigo-500/30">
       {/* Top Navigation Bar */}
-      <header className="h-14 border-b border-white/10 flex items-center px-4 justify-between bg-zinc-950/95 shrink-0 sticky top-0 z-50 relative">
+      <header className="h-14 border-b border-white/10 flex items-center px-4 justify-between bg-zinc-950/95 shrink-0 sticky top-0 z-50">
         {/* Left: App Title */}
         <div className="flex items-center gap-2 flex-1">
-          <div className="w-6 h-6 rounded-md bg-gradient-to-tr from-indigo-500 to-violet-500 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+          <div className="w-6 h-6 rounded-md bg-linear-to-tr from-indigo-500 to-violet-500 flex items-center justify-center shadow-lg shadow-indigo-500/20">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5 text-white"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
           </div>
           <h1 className="font-semibold text-[15px] tracking-tight text-zinc-100">Dora Music Manager</h1>
         </div>
 
         {/* Center: Folder Path */}
-        <div className="hidden md:flex justify-center flex-1 relative z-[60]">
+        <div className="hidden md:flex justify-center flex-1 relative z-60">
           {directoryPath && (
-            <FolderStatsPopup 
+            <FolderStatsPopup
               directoryPath={directoryPath}
               musicFiles={musicFiles}
               handleCloseFolder={handleCloseFolder}
@@ -94,7 +92,7 @@ export const Layout: React.FC = () => {
             <LibraryView />
           </Panel>
 
-          <PanelResizeHandle className="w-[2px] bg-white/5 hover:bg-indigo-500/50 transition-colors cursor-col-resize active:bg-indigo-500" />
+          <PanelResizeHandle className="w-0.5 bg-white/5 hover:bg-indigo-500/50 transition-colors cursor-col-resize active:bg-indigo-500" />
 
           {/* Right Panel: Edit Form & Album Art */}
           <Panel defaultSize={25} minSize={20} maxSize={50} className="bg-black/40 backdrop-blur-xl flex flex-col border-l border-white/5 shadow-2xl shadow-black/50 relative z-10">
@@ -110,14 +108,13 @@ export const Layout: React.FC = () => {
       <CustomToaster />
 
       {/* Sync Lock Overlay */}
-      <LockOverlay 
+      <LockOverlay
         isLocked={isSyncing}
         title="Đang đồng bộ..."
         description="Đang xử lý thay đổi từ File System, vui lòng đợi."
         icon={<Loader2 className="w-12 h-12 animate-spin" />}
-        className="fixed inset-0 z-[9999] bg-black/40 backdrop-blur-[2px]"
+        className="fixed inset-0 z-9999 bg-black/40 backdrop-blur-[2px]"
       />
     </div>
   );
 };
-

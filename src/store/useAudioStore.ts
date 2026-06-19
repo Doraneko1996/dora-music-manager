@@ -67,6 +67,7 @@ interface AudioStoreState {
   clearMetadata: () => Promise<void>;
   refreshData: () => Promise<void>;
   syncFileSystemChanges: (removedPaths: string[], updatedFiles: AudioMetadata[], partialAggregated: AggregatedMetadata | null) => void;
+  resetStore: () => void;
 }
 
 export const useAudioStore = create<AudioStoreState>((set, get) => ({
@@ -109,6 +110,20 @@ export const useAudioStore = create<AudioStoreState>((set, get) => ({
     set({ gridColumns: cols });
   },
   setSearchQuery: (query) => set({ searchQuery: query }),
+  resetStore: () => set({
+    musicFiles: [],
+    aggregatedData: null,
+    selectedFiles: [],
+    directoryPath: '',
+    isScanning: false,
+    isSyncing: false,
+    isEditing: false,
+    selectedEntityName: null,
+    pendingMetadata: {},
+    pendingArtworkPath: null,
+    currentArtworkBase64: null,
+    searchQuery: ''
+  }),
 
   applyFilenamesToTitles: async () => {
     const state = get();
@@ -241,9 +256,15 @@ export const useAudioStore = create<AudioStoreState>((set, get) => ({
 
       if (hasChanges && updates.length > 0) {
         await invoke('update_metadata_batch', { updates });
-        
+      }
+
+      if (state.pendingArtworkPath !== null) {
+        await invoke('process_and_embed_artwork', { files: state.selectedFiles, imagePath: state.pendingArtworkPath });
+      }
+
+      if ((hasChanges && updates.length > 0) || state.pendingArtworkPath !== null) {
         let newEntityName = state.selectedEntityName;
-        if (state.selectedEntityName) {
+        if (hasChanges && state.selectedEntityName) {
           let updatedValue = undefined;
           if (state.activeTab === 'artists') updatedValue = state.pendingMetadata.artist;
           else if (state.activeTab === 'albums') updatedValue = state.pendingMetadata.album;
@@ -260,15 +281,6 @@ export const useAudioStore = create<AudioStoreState>((set, get) => ({
            aggregatedData: result.aggregated,
            selectedEntityName: newEntityName
         });
-      }
-
-      if (state.pendingArtworkPath !== null) {
-        await invoke('process_and_embed_artwork', { files: state.selectedFiles, imagePath: state.pendingArtworkPath });
-        // Refresh data again if we updated artwork but not metadata
-        if (!hasChanges) {
-          const result: ScanResult = await invoke('scan_directory', { path: state.directoryPath });
-          set({ musicFiles: result.files, aggregatedData: result.aggregated });
-        }
       }
 
       if (hasChanges || state.pendingArtworkPath !== null) {

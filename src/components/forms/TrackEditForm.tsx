@@ -12,6 +12,8 @@ import { calculateCommonMetadata, FormValues } from '../../lib/metadataUtils';
 import { CoverArtUploader } from '../CoverArtUploader';
 import { TrackList } from '../TrackList';
 import { FilenameToTitleDialog } from '../FilenameToTitleDialog';
+import { ArtistSelect } from './ArtistSelect';
+import { AlbumSelect } from './AlbumSelect';
 import {
   Dialog,
   DialogContent,
@@ -131,8 +133,10 @@ export const TrackEditForm: React.FC = () => {
   }
 
   const inputClass = cn(
-    "transition-all duration-300",
-    !isEditing && "border-transparent bg-transparent shadow-none focus-visible:ring-0 focus-visible:border-transparent focus-visible:bg-transparent cursor-default select-text"
+    "transition-all duration-300 w-full",
+    isEditing 
+      ? "bg-white/5 border-white/10 hover:bg-white/10 hover:text-white focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus-visible:border-indigo-500 focus-visible:bg-white/10" 
+      : "border-transparent bg-transparent shadow-none focus-visible:ring-0 focus-visible:border-transparent focus-visible:bg-transparent cursor-default select-text"
   );
 
   if (selectedFiles.length > 1) {
@@ -159,7 +163,7 @@ export const TrackEditForm: React.FC = () => {
                 Xoá Metadata
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
+            <DialogContent className="sm:max-w-106.25 bg-zinc-950 border border-white/10 text-white shadow-2xl shadow-black">
               <DialogHeader>
                 <DialogTitle className="text-zinc-100 flex items-center gap-2 text-[17px]">
                   <Trash2 className="text-red-400 w-5 h-5" />
@@ -188,14 +192,14 @@ export const TrackEditForm: React.FC = () => {
   return (
     <Form {...form}>
       <div className="flex flex-col gap-4 w-full h-full min-h-0">
-        <div className="flex flex-col gap-4 flex-1 min-h-[50%] shrink-0 overflow-y-auto custom-scrollbar pr-2 pb-2">
-          <div className="grid gap-2">
+        <div className="flex flex-col gap-4 flex-1 min-h-[50%] shrink-0 overflow-y-auto custom-scrollbar pr-2 py-4 -my-4 mask-fade-y min-w-0">
+          <div className="grid gap-2 min-w-0">
             <Label htmlFor="title" className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Title</Label>
             <FormField
               control={control}
               name="title"
               render={({ field }) => (
-                <FormItem>
+                <FormItem className="min-w-0">
                   <FormControl>
                     <Tooltip>
                       <TooltipTrigger asChild>
@@ -215,52 +219,38 @@ export const TrackEditForm: React.FC = () => {
             />
           </div>
 
-          <div className="grid gap-2">
+          <div className="grid gap-2 min-w-0">
             <Label htmlFor="artist" className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Artist</Label>
             <FormField
               control={control}
               name="artist"
               render={({ field }) => (
-                <FormItem>
+                <FormItem className="min-w-0">
                   <FormControl>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Input
-                          {...field}
-                          id="artist"
-                          readOnly={!isEditing}
-                          placeholder={isEditing ? "Nhập tên nghệ sĩ..." : "Trống"}
-                          className={cn(inputClass, "truncate")}
-                        />
-                      </TooltipTrigger>
-                      {field.value && <TooltipContent>{field.value}</TooltipContent>}
-                    </Tooltip>
+                    <ArtistSelect 
+                      value={field.value || ""} 
+                      onChange={field.onChange} 
+                      isEditing={isEditing} 
+                    />
                   </FormControl>
                 </FormItem>
               )}
             />
           </div>
 
-          <div className="grid gap-2">
+          <div className="grid gap-2 min-w-0">
             <Label htmlFor="album" className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Album</Label>
             <FormField
               control={control}
               name="album"
               render={({ field }) => (
-                <FormItem>
+                <FormItem className="min-w-0">
                   <FormControl>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Input
-                          {...field}
-                          id="album"
-                          readOnly={!isEditing}
-                          placeholder={isEditing ? "Nhập tên album..." : "Trống"}
-                          className={cn(inputClass, "truncate")}
-                        />
-                      </TooltipTrigger>
-                      {field.value && <TooltipContent>{field.value}</TooltipContent>}
-                    </Tooltip>
+                    <AlbumSelect 
+                      value={field.value || ""} 
+                      onChange={field.onChange} 
+                      isEditing={isEditing} 
+                    />
                   </FormControl>
                 </FormItem>
               )}
@@ -268,13 +258,13 @@ export const TrackEditForm: React.FC = () => {
           </div>
 
           <div className="flex gap-4">
-            <div className="grid gap-2 flex-1">
+            <div className="grid gap-2 flex-1 min-w-0">
               <Label htmlFor="year" className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Year</Label>
               <FormField
                 control={control}
                 name="year"
                 render={({ field }) => (
-                  <FormItem>
+                  <FormItem className="min-w-0">
                     <FormControl>
                       <Input
                         {...field}
@@ -289,13 +279,13 @@ export const TrackEditForm: React.FC = () => {
                 )}
               />
             </div>
-            <div className="grid gap-2 flex-1">
+            <div className="grid gap-2 flex-1 min-w-0">
               <Label htmlFor="genre" className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Genre</Label>
               <FormField
                 control={control}
                 name="genre"
                 render={({ field }) => (
-                  <FormItem>
+                  <FormItem className="min-w-0">
                     <FormControl>
                       <Tooltip>
                         <TooltipTrigger asChild>
@@ -324,7 +314,6 @@ export const TrackEditForm: React.FC = () => {
           />
         </div>
 
-        {/* Cụm nút Action */}
         <div className="pt-3 border-t border-white/5 shrink-0 flex flex-col gap-2">
           {!isEditing ? (
             <div className="flex flex-wrap gap-2 w-full">
@@ -340,7 +329,7 @@ export const TrackEditForm: React.FC = () => {
                 type="button"
                 onClick={() => setIsConfirmOpen(true)}
                 variant="destructive"
-                className="flex-1 gap-2 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white shadow-lg shadow-red-500/20 border-0 transition-all cursor-pointer"
+                className="flex-1 gap-2 bg-linear-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white shadow-lg shadow-red-500/20 border-0 transition-all cursor-pointer"
               >
                 <Trash2 size={18} />
                 Xóa metadata
@@ -359,7 +348,22 @@ export const TrackEditForm: React.FC = () => {
               </Button>
               <Button
                 type="button"
-                onClick={saveChanges}
+                onClick={() => {
+                  const currentAlbum = watch('album');
+                  const { aggregatedData, pendingArtworkPath, currentArtworkBase64 } = useAudioStore.getState();
+                  const isNewAlbum = currentAlbum && !aggregatedData?.albums?.some(a => a.album_name === currentAlbum);
+                  
+                  if (isNewAlbum && !pendingArtworkPath && !currentArtworkBase64) {
+                    import('sonner').then(({ toast }) => {
+                      toast.error('Cần thêm ảnh bìa', {
+                        description: `Album "${currentAlbum}" là album mới. Bạn bắt buộc phải thêm ảnh bìa cho bài hát để làm ảnh bìa cho album này.`
+                      });
+                    });
+                    return;
+                  }
+                  
+                  saveChanges();
+                }}
                 className="flex-1 gap-2 btn-gradient-success cursor-pointer"
               >
                 <Save size={18} />
@@ -370,7 +374,7 @@ export const TrackEditForm: React.FC = () => {
         </div>
 
         <Dialog open={isConfirmOpen} onOpenChange={setIsConfirmOpen}>
-          <DialogContent className="sm:max-w-[400px]">
+          <DialogContent className="sm:max-w-100 bg-zinc-950 border border-white/10 text-white shadow-2xl shadow-black">
             <DialogHeader>
               <DialogTitle className="text-zinc-100 flex items-center gap-2 text-[17px]">
                 <Trash2 className="text-red-400 w-5 h-5" />

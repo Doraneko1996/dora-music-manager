@@ -297,7 +297,7 @@ export const DataGrid: React.FC = () => {
                 </div>
                 <div className="flex flex-col items-end gap-1 shrink-0">
                   {bitrate && (
-                    <span className={`px-1.5 py-[2px] rounded-sm text-[9px] font-bold leading-none text-white shadow-sm ${getSolidBitrateColor(row.original.bitrate)}`}>
+                    <span className={`px-1.5 py-0.5 rounded-sm text-[9px] font-bold leading-none text-white shadow-sm ${getSolidBitrateColor(row.original.bitrate)}`}>
                       {bitrate}
                     </span>
                   )}
@@ -381,16 +381,16 @@ export const DataGrid: React.FC = () => {
   const alphabetMap = useMemo(() => {
     const map = new Map<string, number>();
     const sortedColumnId = sorting.length > 0 ? sorting[0].id : 'file_name';
-    
+
     rows.forEach((row, index) => {
       let val = row.getValue(sortedColumnId) as string;
       if (!val) return;
-      
+
       let firstChar = val.charAt(0).toUpperCase();
       if (!/[A-Z]/.test(firstChar)) {
         firstChar = '#'; // Gom nhóm số và ký hiệu thành #
       }
-      
+
       if (!map.has(firstChar)) {
         map.set(firstChar, index);
       }
@@ -452,7 +452,7 @@ export const DataGrid: React.FC = () => {
   }
 
   return (
-    <div 
+    <div
       className="flex-1 w-full h-full border border-white/5 rounded-lg relative overflow-hidden bg-black/20 shadow-inner group/datagrid"
       onPointerMove={(e) => {
         if (isScrubbing) return;
@@ -475,7 +475,7 @@ export const DataGrid: React.FC = () => {
         if (!isScrubbing) setIsScrollerVisible(false);
       }}
     >
-      <AlphabetScroller 
+      <AlphabetScroller
         alphabetMap={alphabetMap}
         onScrollTo={(index) => rowVirtualizer.scrollToIndex(index, { align: 'start' })}
         isVisible={isScrollerVisible}
@@ -511,8 +511,8 @@ export const DataGrid: React.FC = () => {
                           <DropdownMenuTrigger asChild>
                             <button
                               className={`p-1.5 shrink-0 rounded-md transition-all duration-300 outline-none focus:outline-none data-[state=open]:opacity-100 data-[state=open]:bg-indigo-500/20 data-[state=open]:text-indigo-300 ${header.column.getFilterValue() || header.column.getIsSorted()
-                                  ? 'bg-amber-500/20 text-amber-400 opacity-100 shadow-[0_0_12px_rgba(245,158,11,0.3)] data-[state=open]:bg-amber-500/30 data-[state=open]:text-amber-300'
-                                  : 'opacity-40 group-hover:opacity-100 hover:bg-white/10 text-zinc-500 hover:text-zinc-300'
+                                ? 'bg-amber-500/20 text-amber-400 opacity-100 shadow-[0_0_12px_rgba(245,158,11,0.3)] data-[state=open]:bg-amber-500/30 data-[state=open]:text-amber-300'
+                                : 'opacity-40 group-hover:opacity-100 hover:bg-white/10 text-zinc-500 hover:text-zinc-300'
                                 }`}
                               title="Tuỳ chọn cột"
                             >
@@ -562,13 +562,13 @@ export const DataGrid: React.FC = () => {
                                     <FileAudio size={14} className="mr-2 opacity-70 shrink-0" />
                                     <span className="flex-1">Loại File</span>
                                     {((header.column.getFilterValue() as any)?.types?.length > 0) && (
-                                      <span className="text-[9px] bg-indigo-500/30 text-indigo-200 px-1.5 py-0.5 rounded-full font-bold ml-2 mr-1 flex items-center justify-center min-w-[1.25rem]">
+                                      <span className="text-[9px] bg-indigo-500/30 text-indigo-200 px-1.5 py-0.5 rounded-full font-bold ml-2 mr-1 flex items-center justify-center min-w-5">
                                         {(header.column.getFilterValue() as any).types.length}
                                       </span>
                                     )}
                                   </DropdownMenuSubTrigger>
                                   <DropdownMenuPortal>
-                                    <DropdownMenuSubContent className="bg-zinc-950/95 border-white/10 backdrop-blur-xl shadow-xl shadow-black/80 text-zinc-300 p-1.5 rounded-xl z-50 min-w-[8rem]">
+                                    <DropdownMenuSubContent className="bg-zinc-950/95 border-white/10 backdrop-blur-xl shadow-xl shadow-black/80 text-zinc-300 p-1.5 rounded-xl z-50 min-w-32">
                                       {availableExtensions.map(ext => {
                                         const currentFilters = header.column.getFilterValue() as any || { types: [], bitrates: [] };
                                         const isChecked = currentFilters.types?.includes(ext);
@@ -603,13 +603,13 @@ export const DataGrid: React.FC = () => {
                                     <Activity size={14} className="mr-2 opacity-70 shrink-0" />
                                     <span className="flex-1">Bitrate</span>
                                     {((header.column.getFilterValue() as any)?.bitrates?.length > 0) && (
-                                      <span className="text-[9px] bg-indigo-500/30 text-indigo-200 px-1.5 py-0.5 rounded-full font-bold ml-2 mr-1 flex items-center justify-center min-w-[1.25rem]">
+                                      <span className="text-[9px] bg-indigo-500/30 text-indigo-200 px-1.5 py-0.5 rounded-full font-bold ml-2 mr-1 flex items-center justify-center min-w-5">
                                         {(header.column.getFilterValue() as any).bitrates.length}
                                       </span>
                                     )}
                                   </DropdownMenuSubTrigger>
                                   <DropdownMenuPortal>
-                                    <DropdownMenuSubContent className="bg-zinc-950/95 border-white/10 backdrop-blur-xl shadow-xl shadow-black/80 text-zinc-300 p-1.5 rounded-xl z-50 min-w-[12rem]">
+                                    <DropdownMenuSubContent className="bg-zinc-950/95 border-white/10 backdrop-blur-xl shadow-xl shadow-black/80 text-zinc-300 p-1.5 rounded-xl z-50 min-w-48">
                                       {[
                                         { id: '>320', label: 'Lossless (> 320 kbps)' },
                                         { id: '320', label: 'High Quality (320 kbps)' },
@@ -678,13 +678,13 @@ export const DataGrid: React.FC = () => {
                                     <Users size={14} className="mr-2 opacity-70 shrink-0" />
                                     <span className="flex-1">Hợp tác (Featuring)</span>
                                     {((header.column.getFilterValue() as any)?.collabTypes?.length > 0) && (
-                                      <span className="text-[9px] bg-indigo-500/30 text-indigo-200 px-1.5 py-0.5 rounded-full font-bold ml-2 mr-1 flex items-center justify-center min-w-[1.25rem]">
+                                      <span className="text-[9px] bg-indigo-500/30 text-indigo-200 px-1.5 py-0.5 rounded-full font-bold ml-2 mr-1 flex items-center justify-center min-w-5">
                                         {(header.column.getFilterValue() as any).collabTypes.length}
                                       </span>
                                     )}
                                   </DropdownMenuSubTrigger>
                                   <DropdownMenuPortal>
-                                    <DropdownMenuSubContent className="bg-zinc-950/95 border-white/10 backdrop-blur-xl shadow-xl shadow-black/80 text-zinc-300 p-1.5 rounded-xl z-50 min-w-[10rem]">
+                                    <DropdownMenuSubContent className="bg-zinc-950/95 border-white/10 backdrop-blur-xl shadow-xl shadow-black/80 text-zinc-300 p-1.5 rounded-xl z-50 min-w-40">
                                       {[
                                         { id: 'solo', label: 'Hát đơn (Solo)' },
                                         { id: 'collab', label: 'Có kết hợp (Featuring)' },
@@ -814,7 +814,7 @@ export const DataGrid: React.FC = () => {
                   key={row.id}
                   data-index={virtualRow.index}
                   onClick={(e) => handleRowClick(e, row.original.file_path)}
-                  className={`flex w-full items-stretch cursor-pointer select-none transition-all duration-300 relative group overflow-hidden border-b border-white/5 ${isSelected ? 'row-active-bg after:absolute after:left-0 after:top-0 after:bottom-0 after:w-[3px] after:bg-indigo-500' : 'row-hover-bg'
+                  className={`flex w-full items-stretch cursor-pointer select-none transition-all duration-300 relative group overflow-hidden border-b border-white/5 ${isSelected ? 'row-active-bg after:absolute after:left-0 after:top-0 after:bottom-0 after:w-0.75 after:bg-indigo-500' : 'row-hover-bg'
                     }`}
                   style={{ height: '40px' }}
                 >
@@ -843,7 +843,7 @@ export const DataGrid: React.FC = () => {
         {typeof document !== 'undefined' && createPortal(
           <div
             ref={tooltipRef}
-            className="fixed z-[100] px-3 py-1.5 text-xs font-medium rounded-md shadow-md backdrop-blur-xl bg-white/70 text-zinc-800 dark:bg-zinc-800/70 dark:text-white/80 border border-black/10 dark:border-white/10 pointer-events-none"
+            className="fixed z-100 px-3 py-1.5 text-xs font-medium rounded-md shadow-md backdrop-blur-xl bg-white/70 text-zinc-800 dark:bg-zinc-800/70 dark:text-white/80 border border-black/10 dark:border-white/10 pointer-events-none"
             style={{ display: 'none' }}
           />,
           document.body

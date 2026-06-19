@@ -35,9 +35,9 @@ export const FilenameToTitleDialog: React.FC<FilenameToTitleDialogProps> = ({ ch
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         {children || (
-          <Button 
-            variant="secondary" 
-            size="sm" 
+          <Button
+            variant="secondary"
+            size="sm"
             disabled={selectedFiles.length === 0}
             className="gap-2 bg-zinc-800/50 hover:bg-zinc-700/50 border border-white/5"
           >
@@ -47,25 +47,25 @@ export const FilenameToTitleDialog: React.FC<FilenameToTitleDialogProps> = ({ ch
         )}
       </DialogTrigger>
       <DialogContent className="max-w-2xl text-zinc-100 p-0 flex flex-col max-h-[80vh]">
-          <DialogHeader>
-            <DialogTitle>Chuyển Tên File thành Title</DialogTitle>
-            <DialogDescription>
-              Hành động này sẽ lấy tên file (bỏ đuôi mở rộng) và áp dụng làm thuộc tính Title cho các file đã chọn.
-            </DialogDescription>
-          </DialogHeader>
-        
-        <div className="flex-1 overflow-y-auto custom-scrollbar p-0 min-h-[200px]">
+        <DialogHeader>
+          <DialogTitle>Chuyển Tên File thành Title</DialogTitle>
+          <DialogDescription>
+            Hành động này sẽ lấy tên file (bỏ đuôi mở rộng) và áp dụng làm thuộc tính Title cho các file đã chọn.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="flex-1 overflow-y-auto custom-scrollbar p-0 min-h-50">
           <div className="grid grid-cols-[1fr_auto_1fr] gap-4 p-4 text-xs font-medium text-zinc-400 uppercase tracking-wider sticky top-0 bg-zinc-950/95 backdrop-blur z-10 border-b border-white/5 shadow-md">
             <div>Tên File (Hiện tại)</div>
             <div className="w-8"></div>
             <div>Title (Mới)</div>
           </div>
-          
+
           <div className="divide-y divide-white/5">
             {selectedMusicFiles.map(file => {
               const lastDotIndex = file.file_name.lastIndexOf('.');
               const baseName = lastDotIndex !== -1 ? file.file_name.substring(0, lastDotIndex) : file.file_name;
-              
+
               return (
                 <div key={file.file_path} className="grid grid-cols-[1fr_auto_1fr] gap-4 p-4 hover:bg-white/5 items-center transition-colors">
                   <Tooltip>
@@ -90,7 +90,7 @@ export const FilenameToTitleDialog: React.FC<FilenameToTitleDialogProps> = ({ ch
                 </div>
               );
             })}
-            
+
             {selectedMusicFiles.length === 0 && (
               <div className="p-8 text-center text-zinc-500 text-sm">
                 Không có file nào được chọn
@@ -99,14 +99,14 @@ export const FilenameToTitleDialog: React.FC<FilenameToTitleDialogProps> = ({ ch
           </div>
         </div>
 
-          <DialogFooter>
-            <DialogClose asChild>
-              <Button variant="secondary" className="border border-white/10 bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white transition-all cursor-pointer">Hủy</Button>
-            </DialogClose>
-            <Button onClick={handleApply} className="btn-gradient-brand gap-2" disabled={selectedFiles.length === 0}>
-              Áp dụng
-            </Button>
-          </DialogFooter>
+        <DialogFooter>
+          <DialogClose asChild>
+            <Button variant="secondary" className="border border-white/10 bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white transition-all cursor-pointer">Hủy</Button>
+          </DialogClose>
+          <Button onClick={handleApply} className="btn-gradient-brand gap-2" disabled={selectedFiles.length === 0}>
+            Áp dụng
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

@@ -152,7 +152,7 @@ export const AlbumEditForm: React.FC = () => {
         </div>
 
         {/* TrackList Section - Có thể cuộn */}
-        <div className="flex flex-col flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-2 pb-2">
+        <div className="flex flex-col gap-4 flex-1 min-h-[50%] shrink-0 overflow-y-auto custom-scrollbar pr-2 py-4 -my-4 mask-fade-y min-w-0">
           <TrackList
             files={musicFiles.filter(f => selectedFiles.includes(f.file_path))}
           />
