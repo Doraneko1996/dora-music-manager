@@ -168,18 +168,23 @@ export const DataGrid: React.FC = () => {
           const isSomeSelected = selectedFiles.length > 0 && selectedFiles.length < filteredMusicFiles.length;
 
           return (
-            <div className="flex items-center justify-center w-full">
+            <div
+              className={`flex items-center justify-center w-full h-full min-h-10 ${!isEditing ? 'cursor-pointer' : ''}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (isEditing) return;
+                if (isAllSelected) {
+                  setSelectedFiles([]);
+                } else {
+                  setSelectedFiles(filteredMusicFiles.map(f => f.file_path));
+                }
+              }}
+            >
               <Checkbox
                 checked={isAllSelected ? true : isSomeSelected ? "indeterminate" : false}
-                onCheckedChange={(checked) => {
-                  if (checked) {
-                    setSelectedFiles(filteredMusicFiles.map(f => f.file_path));
-                  } else {
-                    setSelectedFiles([]);
-                  }
-                }}
                 disabled={isEditing}
                 aria-label="Select all"
+                className="pointer-events-none"
               />
             </div>
           );
@@ -189,19 +194,23 @@ export const DataGrid: React.FC = () => {
           const isSelected = selectedFiles.includes(filePath);
 
           return (
-            <div className="flex items-center justify-center w-full" onClick={e => e.stopPropagation()}>
+            <div
+              className={`flex items-center justify-center w-full h-full min-h-10 ${!isEditing ? 'cursor-pointer' : ''}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (isEditing) return;
+                if (isSelected) {
+                  setSelectedFiles(selectedFiles.filter(p => p !== filePath));
+                } else {
+                  setSelectedFiles([...selectedFiles, filePath]);
+                }
+              }}
+            >
               <Checkbox
                 checked={isSelected}
-                onCheckedChange={(checked) => {
-                  if (isEditing) return;
-                  if (checked) {
-                    setSelectedFiles([...selectedFiles, filePath]);
-                  } else {
-                    setSelectedFiles(selectedFiles.filter(p => p !== filePath));
-                  }
-                }}
                 disabled={isEditing}
                 aria-label="Select row"
+                className="pointer-events-none"
               />
             </div>
           );
