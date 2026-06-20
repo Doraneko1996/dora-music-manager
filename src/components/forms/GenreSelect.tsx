@@ -73,7 +73,7 @@ export const GenreSelect: React.FC<GenreSelectProps> = ({ value, onChange, isEdi
             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent align="end" className="min-w-60 w-(--radix-popover-trigger-width) p-1 border border-white/10 bg-black/70 backdrop-blur-2xl shadow-[0_0_40px_rgba(0,0,0,0.8)] rounded-xl">
+        <PopoverContent usePortal={false} align="start" className="min-w-60 w-(--radix-popover-trigger-width) p-1 border border-white/10 bg-black/70 backdrop-blur-2xl shadow-[0_0_40px_rgba(0,0,0,0.8)] rounded-xl">
           <Command shouldFilter={false}>
             <CommandInput
               placeholder="Tìm hoặc thêm mới..."

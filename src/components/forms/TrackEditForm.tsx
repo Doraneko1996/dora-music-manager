@@ -5,7 +5,7 @@ import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Button } from '../ui/button';
 import { Form, FormControl, FormField, FormItem } from '../ui/form';
-import { Music, Save, X, Edit3, Trash2, FileText } from 'lucide-react';
+import { Music, Save, X, Edit3, Trash2, FileText, Disc3, Tag } from 'lucide-react';
 import { invoke } from '@tauri-apps/api/core';
 import { cn } from '../../lib/utils';
 import { calculateCommonMetadata, FormValues } from '../../lib/metadataUtils';
@@ -29,13 +29,17 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
 
 export const TrackEditForm: React.FC = () => {
   const {
-    musicFiles, selectedFiles, clearMetadata,
+    musicFiles, selectedFiles, setSelectedFiles, clearMetadata,
     setPendingMetadata, setPendingArtworkPath,
     setCurrentArtworkBase64, saveChanges,
     isEditing, setIsEditing
   } = useAudioStore();
 
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [bulkAlbumOpen, setBulkAlbumOpen] = useState(false);
+  const [bulkAlbumValue, setBulkAlbumValue] = useState("");
+  const [bulkGenreOpen, setBulkGenreOpen] = useState(false);
+  const [bulkGenreValue, setBulkGenreValue] = useState("");
 
   const form = useForm<FormValues>({
     defaultValues: { title: '', artist: '', album: '', genre: '', year: '' }
@@ -121,7 +125,22 @@ export const TrackEditForm: React.FC = () => {
     setPendingArtworkPath(""); 
     
     // Gọi hàm lưu nhưng với dữ liệu trống
+    setIsEditing(true);
     await saveChanges();
+  };
+
+  const handleBulkAlbumSave = async () => {
+    setPendingMetadata({ album: bulkAlbumValue });
+    setIsEditing(true);
+    await saveChanges();
+    setBulkAlbumOpen(false);
+  };
+
+  const handleBulkGenreSave = async () => {
+    setPendingMetadata({ genre: bulkGenreValue });
+    setIsEditing(true);
+    await saveChanges();
+    setBulkGenreOpen(false);
   };
 
   if (isDisabled) {
@@ -147,6 +166,7 @@ export const TrackEditForm: React.FC = () => {
           files={musicFiles.filter(f => selectedFiles.includes(f.file_path))} 
           className="flex-1 flex flex-col min-h-0 w-full overflow-hidden" 
           title="Danh sách bài hát đang chọn"
+          onClearSelection={() => setSelectedFiles([])}
         />
         
         <div className="flex items-center gap-3 shrink-0 mt-2">
@@ -179,9 +199,80 @@ export const TrackEditForm: React.FC = () => {
                 <DialogClose asChild>
                   <Button variant="secondary" className="border border-white/10 bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white transition-all cursor-pointer">Hủy</Button>
                 </DialogClose>
+                <Button variant="destructive" onClick={handleClearAllMetadata} className="btn-gradient-destructive cursor-pointer px-5">Xoá Dữ Liệu</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
+
+        {/* Nút chỉnh sửa hàng loạt */}
+        <div className="grid grid-cols-2 gap-3 shrink-0">
+          <Dialog open={bulkAlbumOpen} onOpenChange={(open) => { setBulkAlbumOpen(open); if(open) setBulkAlbumValue(""); }}>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="w-full h-10 gap-2 bg-white/5 border-white/10 hover:bg-white/10 hover:text-white transition-all cursor-pointer" disabled={selectedFiles.length === 0}>
+                <Disc3 size={16} className="text-indigo-400" />
+                Đổi Album
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-100 bg-zinc-950 border border-white/10 text-white shadow-2xl shadow-black">
+              <DialogHeader>
+                <DialogTitle className="text-zinc-100 flex items-center gap-2 text-[17px]">
+                  <Disc3 className="text-indigo-400 w-5 h-5" />
+                  Đổi Album hàng loạt
+                </DialogTitle>
+                <DialogDescription className="text-zinc-400 pt-2 text-sm leading-relaxed">
+                  Cập nhật Album cho <span className="font-bold text-white">{selectedFiles.length} bài hát</span> đã chọn.
+                </DialogDescription>
+              </DialogHeader>
+              
+              <div className="px-6 py-4">
+                <AlbumSelect 
+                  value={bulkAlbumValue} 
+                  onChange={setBulkAlbumValue} 
+                  isEditing={true} 
+                />
+              </div>
+
+              <DialogFooter>
                 <DialogClose asChild>
-                  <Button variant="destructive" onClick={clearMetadata} className="btn-gradient-destructive cursor-pointer px-5">Xoá Dữ Liệu</Button>
+                  <Button variant="secondary" className="border border-white/10 bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white transition-all cursor-pointer">Hủy</Button>
                 </DialogClose>
+                <Button onClick={handleBulkAlbumSave} className="btn-gradient-success cursor-pointer px-5" disabled={!bulkAlbumValue}>Lưu thay đổi</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          <Dialog open={bulkGenreOpen} onOpenChange={(open) => { setBulkGenreOpen(open); if(open) setBulkGenreValue(""); }}>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="w-full h-10 gap-2 bg-white/5 border-white/10 hover:bg-white/10 hover:text-white transition-all cursor-pointer" disabled={selectedFiles.length === 0}>
+                <Tag size={16} className="text-fuchsia-400" />
+                Đổi Thể Loại
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-100 bg-zinc-950 border border-white/10 text-white shadow-2xl shadow-black">
+              <DialogHeader>
+                <DialogTitle className="text-zinc-100 flex items-center gap-2 text-[17px]">
+                  <Tag className="text-fuchsia-400 w-5 h-5" />
+                  Đổi Thể loại hàng loạt
+                </DialogTitle>
+                <DialogDescription className="text-zinc-400 pt-2 text-sm leading-relaxed">
+                  Cập nhật Thể loại cho <span className="font-bold text-white">{selectedFiles.length} bài hát</span> đã chọn.
+                </DialogDescription>
+              </DialogHeader>
+              
+              <div className="px-6 py-4">
+                <GenreSelect 
+                  value={bulkGenreValue} 
+                  onChange={setBulkGenreValue} 
+                  isEditing={true} 
+                />
+              </div>
+
+              <DialogFooter>
+                <DialogClose asChild>
+                  <Button variant="secondary" className="border border-white/10 bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white transition-all cursor-pointer">Hủy</Button>
+                </DialogClose>
+                <Button onClick={handleBulkGenreSave} className="btn-gradient-success cursor-pointer px-5" disabled={!bulkGenreValue}>Lưu thay đổi</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>

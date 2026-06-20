@@ -1,13 +1,14 @@
 import React from 'react';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from './ui/tooltip';
-import { AudioMetadata } from '../store/useAudioStore';
-import { ListMusic, Music2 } from 'lucide-react';
+import { AudioMetadata, useAudioStore } from '../store/useAudioStore';
+import { ListMusic, Music2, X } from 'lucide-react';
 
 interface TrackListProps {
   files: AudioMetadata[];
   selectedEntityName?: string | null;
   className?: string;
   title?: string;
+  onClearSelection?: () => void;
 }
 
 import { TruncatedTooltip } from './ui/truncated-tooltip';
@@ -25,7 +26,7 @@ const parseArtist = (artistStr?: string | null) => {
   return { mainArtist, featArtist };
 };
 
-export const TrackList: React.FC<TrackListProps> = ({ files, selectedEntityName, className, title = "Danh sách bài hát" }) => {
+export const TrackList: React.FC<TrackListProps> = ({ files, selectedEntityName, className, title = "Danh sách bài hát", onClearSelection }) => {
   const highlightArtist = (text: string) => {
     if (!selectedEntityName) return text;
     const escapedName = selectedEntityName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -46,9 +47,24 @@ export const TrackList: React.FC<TrackListProps> = ({ files, selectedEntityName,
           <h3 className="text-xs font-semibold text-zinc-300 uppercase tracking-widest truncate">
             {title}
           </h3>
-          <span className="text-[10px] font-bold bg-white/10 text-zinc-300 px-2.5 py-0.5 rounded-full ml-auto">
-            {files.length}
-          </span>
+          <div className="ml-auto flex items-center gap-1.5 shrink-0">
+            {onClearSelection && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button 
+                    onClick={onClearSelection}
+                    className="p-1 rounded-md text-red-400/70 hover:text-red-400 hover:bg-red-500/15 transition-all cursor-pointer flex items-center justify-center"
+                  >
+                    <X size={14} />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="text-xs">Bỏ chọn tất cả</TooltipContent>
+              </Tooltip>
+            )}
+            <span className="text-[10px] font-bold bg-white/10 text-zinc-300 px-2.5 py-0.5 rounded-full">
+              {files.length}
+            </span>
+          </div>
         </div>
         
         <div className="flex-1 overflow-y-auto custom-scrollbar border border-white/5 rounded-xl bg-black/20 p-2 shadow-inner">
