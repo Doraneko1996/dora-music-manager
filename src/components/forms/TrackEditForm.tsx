@@ -152,17 +152,17 @@ export const TrackEditForm: React.FC = () => {
           <br />
           Bạn không thể thay đổi thông tin của tệp bị khoá. Bỏ chọn hoặc mở khoá để tiếp tục.
         </p>
-        <div className="flex flex-col w-full max-w-[240px] gap-3 mt-6">
-          <Button 
-            variant="default" 
+        <div className="flex flex-col w-full max-w-60 gap-3 mt-6">
+          <Button
+            variant="default"
             onClick={() => toggleLock(selectedFiles.filter(f => lockedFiles.includes(f)), false)}
             className="w-full h-11 btn-gradient-warning text-white cursor-pointer"
           >
             <Unlock size={16} className="mr-2" /> Mở khoá tệp
           </Button>
-          
-          <Button 
-            variant="outline" 
+
+          <Button
+            variant="outline"
             onClick={() => setSelectedFiles(selectedFiles.filter(f => !lockedFiles.includes(f)))}
             className="w-full h-11 cursor-pointer border-white/10 bg-black/40 hover:bg-white/10 hover:border-white/20 hover:text-white text-zinc-300 transition-all shadow-sm shadow-black/20"
           >

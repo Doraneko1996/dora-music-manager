@@ -47,6 +47,8 @@ interface AudioStoreState {
   currentArtworkBase64: string | null;
   gridColumns: number;
   searchQuery: string;
+  folderHistory: string[];
+  pinnedFolder: string | null;
   
   // Actions
   setMusicFiles: (files: AudioMetadata[]) => void;
@@ -63,6 +65,9 @@ interface AudioStoreState {
   setCurrentArtworkBase64: (b64: string | null) => void;
   setGridColumns: (cols: number) => void;
   setSearchQuery: (query: string) => void;
+  addFolderToHistory: (path: string) => void;
+  togglePinFolder: (path: string) => void;
+  removeFolderFromHistory: (path: string) => void;
   saveChanges: () => Promise<void>;
   applyFilenamesToTitles: () => Promise<void>;
   clearMetadata: () => Promise<void>;
@@ -82,6 +87,19 @@ const getInitialLockedFiles = (): string[] => {
   }
 };
 
+const getInitialFolderHistory = (): string[] => {
+  try {
+    const data = localStorage.getItem('dora-folder-history');
+    return data ? JSON.parse(data) : [];
+  } catch {
+    return [];
+  }
+};
+
+const getInitialPinnedFolder = (): string | null => {
+  return localStorage.getItem('dora-pinned-folder') || null;
+};
+
 export const useAudioStore = create<AudioStoreState>((set, get) => ({
   musicFiles: [],
   aggregatedData: null,
@@ -98,6 +116,8 @@ export const useAudioStore = create<AudioStoreState>((set, get) => ({
   currentArtworkBase64: null,
   gridColumns: Number(localStorage.getItem('dora-grid-columns')) || 5,
   searchQuery: '',
+  folderHistory: getInitialFolderHistory(),
+  pinnedFolder: getInitialPinnedFolder(),
   
   // Actions
   setMusicFiles: (files) => set({ musicFiles: files }),
@@ -123,6 +143,47 @@ export const useAudioStore = create<AudioStoreState>((set, get) => ({
     set({ gridColumns: cols });
   },
   setSearchQuery: (query) => set({ searchQuery: query }),
+  
+  addFolderToHistory: (path) => set((state) => {
+    // Chỉ thêm vào nếu khác directoryPath hiện tại hoặc state chưa có
+    const normalizedPath = path.replace(/\\/g, '/');
+    const newHistory = state.folderHistory.filter(p => p.replace(/\\/g, '/') !== normalizedPath);
+    newHistory.unshift(path);
+    const finalHistory = newHistory.slice(0, 10); // Keep max 10
+    
+    localStorage.setItem('dora-folder-history', JSON.stringify(finalHistory));
+    return { folderHistory: finalHistory };
+  }),
+
+  togglePinFolder: (path) => set((state) => {
+    const isCurrentlyPinned = state.pinnedFolder?.replace(/\\/g, '/') === path.replace(/\\/g, '/');
+    const newPinned = isCurrentlyPinned ? null : path;
+    
+    if (newPinned) {
+      localStorage.setItem('dora-pinned-folder', newPinned);
+    } else {
+      localStorage.removeItem('dora-pinned-folder');
+    }
+    
+    return { pinnedFolder: newPinned };
+  }),
+
+  removeFolderFromHistory: (path) => set((state) => {
+    const normalizedPath = path.replace(/\\/g, '/');
+    const newHistory = state.folderHistory.filter(p => p.replace(/\\/g, '/') !== normalizedPath);
+    localStorage.setItem('dora-folder-history', JSON.stringify(newHistory));
+    
+    const updates: Partial<AudioStoreState> = { folderHistory: newHistory };
+    
+    // Nếu đang xóa thư mục ghim thì gỡ ghim luôn
+    if (state.pinnedFolder?.replace(/\\/g, '/') === normalizedPath) {
+      localStorage.removeItem('dora-pinned-folder');
+      updates.pinnedFolder = null;
+    }
+    
+    return updates;
+  }),
+
   resetStore: () => set({
     musicFiles: [],
     aggregatedData: null,

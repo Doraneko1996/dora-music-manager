@@ -1,7 +1,16 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
-import { FolderOpen, Loader2 } from 'lucide-react';
+import { FolderOpen, Loader2, ChevronDown, Pin, X } from 'lucide-react';
 import { Button } from './ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+  DropdownMenuLabel
+} from "./ui/dropdown-menu";
+import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 import { invoke } from '@tauri-apps/api/core';
 import { open } from '@tauri-apps/plugin-dialog';
 import { useAudioStore, ScanResult } from '../store/useAudioStore';
@@ -18,8 +27,49 @@ export const Layout: React.FC = () => {
   const {
     musicFiles,
     directoryPath, setDirectoryPath,
-    setMusicFiles, setAggregatedData, isScanning, setIsScanning, isSyncing, resetStore
+    setMusicFiles, setAggregatedData, isScanning, setIsScanning, isSyncing, resetStore,
+    folderHistory, pinnedFolder, addFolderToHistory, togglePinFolder, removeFolderFromHistory
   } = useAudioStore();
+
+  const hasInitialized = useRef(false);
+
+  const loadDirectory = async (path: string, isAutoOpen: boolean = false) => {
+    try {
+      setDirectoryPath(path);
+      setIsScanning(true);
+      const startTime = Date.now();
+      
+      const result: ScanResult = await invoke('scan_directory', { path });
+      setMusicFiles(result.files);
+      setAggregatedData(result.aggregated);
+      addFolderToHistory(path);
+
+      const elapsedTime = Date.now() - startTime;
+      if (elapsedTime < 1000) {
+        await new Promise(resolve => setTimeout(resolve, 1000 - elapsedTime));
+      }
+
+      if (isAutoOpen) {
+        toast.success(`Đã tự động mở thư mục ghim.`);
+      } else {
+        toast.success(`Đã tải thành công ${result.files.length} files nhạc.`);
+      }
+    } catch (error) {
+      console.error("Lỗi khi mở thư mục:", error);
+      toast.error(isAutoOpen ? "Không thể tự động mở thư mục ghim." : "Lỗi hệ thống khi đọc thư mục.");
+    } finally {
+      setIsScanning(false);
+    }
+  };
+
+  useEffect(() => {
+    if (hasInitialized.current) return;
+    hasInitialized.current = true;
+
+    if (pinnedFolder && !directoryPath) {
+      loadDirectory(pinnedFolder, true);
+    }
+  }, [pinnedFolder, directoryPath]);
 
   useFileSystemWatcher(directoryPath);
 
@@ -32,20 +82,10 @@ export const Layout: React.FC = () => {
       });
 
       if (selectedPath && typeof selectedPath === 'string') {
-        setDirectoryPath(selectedPath);
-        setIsScanning(true);
-
-        const result: ScanResult = await invoke('scan_directory', { path: selectedPath });
-        setMusicFiles(result.files);
-        setAggregatedData(result.aggregated);
-
-        toast.success(`Đã tải thành công ${result.files.length} files nhạc.`);
+        await loadDirectory(selectedPath);
       }
     } catch (error) {
       console.error("Lỗi khi mở thư mục:", error);
-      toast.error("Lỗi hệ thống khi đọc thư mục.");
-    } finally {
-      setIsScanning(false);
     }
   };
 
@@ -78,15 +118,93 @@ export const Layout: React.FC = () => {
 
         {/* Right: Actions */}
         <div className="flex items-center justify-end gap-3 flex-1">
-          <Button onClick={handleOpenFolder} size="sm" className="gap-2 btn-gradient-brand" disabled={isScanning}>
-            <FolderOpen size={16} />
-            Mở Thư Mục
-          </Button>
+          <div className="flex items-center btn-gradient-brand rounded-md p-0">
+            <Button
+              onClick={handleOpenFolder}
+              size="sm"
+              className="gap-2 bg-transparent hover:bg-white/10 text-white rounded-r-none border-r border-white/20 shadow-none"
+              disabled={isScanning}
+            >
+              <FolderOpen size={16} />
+              Mở Thư Mục
+            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button size="sm" className="bg-transparent hover:bg-white/10 text-white rounded-l-none px-2 shadow-none focus-visible:ring-0" disabled={isScanning}>
+                  <ChevronDown size={16} />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-80">
+                <DropdownMenuLabel>Lịch sử thư mục</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {folderHistory.length === 0 ? (
+                  <div className="p-3 text-center text-xs text-zinc-500">Chưa có lịch sử</div>
+                ) : (
+                  folderHistory.map((path) => {
+                    const isPinned = pinnedFolder?.replace(/\\/g, '/') === path.replace(/\\/g, '/');
+                    const basename = path.split(/[/\\]/).filter(Boolean).pop() || path;
+
+                    return (
+                      <div key={path} className="flex items-center group relative w-full rounded-lg hover:bg-white/5 transition-colors p-1">
+                        <DropdownMenuItem
+                          className="flex-1 cursor-pointer truncate px-2 py-1.5 focus:bg-transparent data-highlighted:bg-transparent"
+                          onClick={() => loadDirectory(path)}
+                        >
+                          <div className="flex flex-col overflow-hidden w-full">
+                            <span className="text-[13px] font-medium truncate text-zinc-200">{basename}</span>
+                            <span className="text-[10px] text-zinc-500 truncate mt-0.5">{path}</span>
+                          </div>
+                        </DropdownMenuItem>
+                        <div className="flex items-center pr-1 gap-0.5 opacity-50 group-hover:opacity-100 transition-opacity shrink-0">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className={`h-7 w-7 rounded-md bg-transparent hover:bg-white/10 ${isPinned ? 'text-amber-500 drop-shadow-[0_0_8px_rgba(245,158,11,0.5)] opacity-100' : 'text-zinc-400 hover:text-zinc-200'}`}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  togglePinFolder(path);
+                                }}
+                              >
+                                <Pin size={14} className={isPinned ? "fill-current" : ""} />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent side="left" className="bg-zinc-900 border-white/10 text-xs">
+                              {isPinned ? "Bỏ ghim (Không tự động mở nữa)" : "Ghim (Tự động mở khi khởi động ứng dụng)"}
+                            </TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 rounded-md bg-transparent hover:bg-white/10 text-zinc-400 hover:text-rose-400"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  removeFolderFromHistory(path);
+                                }}
+                              >
+                                <X size={14} />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent side="left" className="bg-zinc-900 border-white/10 text-xs">
+                              Xóa khỏi lịch sử
+                            </TooltipContent>
+                          </Tooltip>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
       </header>
 
       {/* Main Content (Split Pane) */}
-      <div className="flex-1 overflow-hidden">
+      <div className="flex-1 overflow-hidden relative">
         <PanelGroup direction="horizontal">
           {/* Left Panel: Library View */}
           <Panel minSize={30} defaultSize={75} className="bg-zinc-950 flex flex-col border-r border-white/5 relative z-0">
@@ -105,6 +223,15 @@ export const Layout: React.FC = () => {
             </div>
           </Panel>
         </PanelGroup>
+
+        {/* Scanning Overlay over Main Content */}
+        <LockOverlay
+          isLocked={isScanning}
+          title="Đang quét thư mục..."
+          description="Đang tải dữ liệu bài hát, vui lòng đợi."
+          icon={<Loader2 className="w-12 h-12 animate-spin" />}
+          className="absolute inset-0 z-50 bg-black/40 backdrop-blur-[2px]"
+        />
       </div>
       <CustomToaster />
 

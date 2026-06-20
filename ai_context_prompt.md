@@ -30,6 +30,7 @@ Xin chào! Hãy đóng vai trò là một Senior Software Engineer và chuyên g
 Dự án theo đuổi phong cách **Premium Dark Mode** lấy cảm hứng sâu sắc từ **MacOS**, yêu cầu độ tinh tế và hoàn thiện rất cao:
 - **Glassmorphism (Nền kính mờ):** Các thành phần trôi nổi (Dropdown Menu, Popover, Submenu) luôn dùng hiệu ứng xuyên thấu `bg-black/70 backdrop-blur-2xl`. 
 - **Deep Soft Shadow:** Đổ bóng siêu rộng và sâu để phân tách các layer không gian: sử dụng `shadow-[0_0_40px_rgba(0,0,0,0.8)]` cho các popover.
+- **Gradient Buttons:** Thay vì màu đơn sắc, các nút quan trọng sử dụng các class có sẵn trong `App.css` như `btn-gradient-brand` (tím/chàm), `btn-gradient-success` (xanh ngọc), `btn-gradient-destructive` (đỏ), `btn-gradient-warning` (vàng/cam). *Lưu ý quan trọng:* Luôn kèm theo class `text-white` tường minh để tránh bị `tailwind-merge` ghi đè màu chữ từ Shadcn UI.
 - **Active States (Trạng thái được chọn):** Khi một mục được kích hoạt (checked/selected), nó sẽ có hiệu ứng viền và nền phát sáng (glow) với màu mặc định là **Indigo** (`bg-indigo-500/10 border-indigo-500/30 text-white`). 
 - **Màu sắc ngữ nghĩa (Semantic Colors):**
   - "Có dữ liệu" (NOT_EMPTY): Màu Xanh lá (Emerald).
@@ -37,9 +38,12 @@ Dự án theo đuổi phong cách **Premium Dark Mode** lấy cảm hứng sâu 
   - "Hủy/Bỏ lọc" (Clear/Remove): Màu Đỏ hồng (Rose).
 - **Tránh giật khung hình (Pixel Jumping):** Các item thường được lót sẵn `border border-transparent` từ trạng thái mặc định để khi hover/active thêm viền màu vào sẽ không bị nhảy pixel giao diện.
 
-### 4. Quy tắc Lập trình (Coding Standards)
+### 4. Quy tắc Lập trình & Kiến trúc (Architecture & Standards)
 - **Ngôn ngữ giao tiếp:** Luôn giải thích và chat bằng **Tiếng Việt**.
+- **Sự nhất quán về Style (Styling Consistency):** Tuyệt đối tuân thủ ngôn ngữ thiết kế chung. Trước khi tạo hoặc sửa một UI component, PHẢI kiểm tra các component tương tự đã có sẵn để đồng bộ về kích thước (ví dụ `h-11`), padding (`px-6 py-5`), bo góc, đổ bóng (`shadow-lg`), và hiệu ứng tương tác (hover/active). Đối với nhóm các nút chức năng cạnh nhau, phải đảm bảo chúng có cùng chiều cao/rộng hoặc sử dụng `flex-col` nếu không gian hẹp để tránh bị tràn và lệch style.
 - **Tái sử dụng Component (Shadcn UI):** Hệ thống UI được xây dựng dựa trên kiến trúc của shadcn-ui. LUÔN LUÔN ưu tiên tái sử dụng, mở rộng và tùy biến (custom style, thêm chức năng) trực tiếp trên các component có sẵn trong thư mục `src/components/ui/` thay vì viết mới. TUYỆT ĐỐI KHÔNG tạo component UI mới trừ khi thật sự cần thiết. Nếu bắt buộc phải tạo mới, phải thông báo và giải thích rõ lý do trước khi thực hiện.
+- **Quản lý Layout & Panel:** Ứng dụng dùng `react-resizable-panels`. Để cuộn mượt mà bên trong các Panel, luôn nhớ set `h-full min-h-0 flex flex-col` cho container cha.
+- **Global Tooltip & Portals:** Các hệ thống dùng `createPortal` (như Tooltip, Dialog) hay Event Listener toàn cục (`document.addEventListener`) phải được đặt ở Component cấp cao (như `Layout.tsx` hoặc `GlobalTooltip`) để không bị unmount khi người dùng chuyển Tab (gây ra lỗi mất Event hoặc Stale Ref).
 - **TypeScript Strict:** Tuyệt đối không dùng `any`. Sử dụng `unknown`, định nghĩa Interface/Type rõ ràng.
 - **Clean Code:** Viết code tuân thủ DRY, tách nhỏ component. Với các file lớn như `DataGrid.tsx`, hãy chú ý tìm đúng đoạn cần sửa thay vì ghi đè lại toàn bộ file.
 - **Không phá vỡ logic cũ:** Khi sửa UI, hãy giữ nguyên các logic `onClick`, `onCheckedChange` và các Data State đang hoạt động.

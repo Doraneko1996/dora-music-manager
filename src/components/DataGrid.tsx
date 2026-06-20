@@ -12,7 +12,7 @@ import {
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { useShallow } from 'zustand/react/shallow';
 import { useAudioStore, AudioMetadata } from '../store/useAudioStore';
-import { Loader2, ListMusic, Filter, ArrowDownAZ, ArrowUpZA, X, FilterX, FileAudio, Activity, Users, Search, Lock, Unlock, Trash2 } from 'lucide-react';
+import { ListMusic, Filter, ArrowDownAZ, ArrowUpZA, X, FilterX, FileAudio, Activity, Users, Search, Lock, Unlock, Trash2 } from 'lucide-react';
 import { AlphabetScroller } from './ui/alphabet-scroller';
 import { useAlphabetMap } from '../hooks/useAlphabetMap';
 const getExtensionTextColor = (ext: string) => {
@@ -248,7 +248,7 @@ const DataGridRow = ({ virtualRow, row, setFilesToDelete, style }: any) => {
 };
 
 export const DataGrid: React.FC = () => {
-  const { musicFiles, isScanning, directoryPath, searchQuery, removeFiles } = useAudioStore(
+  const { musicFiles, directoryPath, searchQuery, removeFiles } = useAudioStore(
     useShallow(state => ({
       musicFiles: state.musicFiles,
       isScanning: state.isScanning,
@@ -466,15 +466,6 @@ export const DataGrid: React.FC = () => {
     estimateSize: () => 40, // Match the actual row height of 40px
     overscan: 25, // Increase overscan slightly for smoother fast scrolling
   });
-
-  if (isScanning) {
-    return (
-      <div className="flex-1 flex flex-col items-center justify-center text-indigo-400 gap-3 h-full">
-        <Loader2 className="animate-spin" size={32} />
-        <p className="text-sm font-medium animate-pulse">Đang quét thư mục... Vui lòng đợi.</p>
-      </div>
-    );
-  }
 
   if (musicFiles.length === 0) {
     return (
