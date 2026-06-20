@@ -1,5 +1,4 @@
 import React, { useRef, useMemo, useEffect } from 'react';
-import { createPortal } from 'react-dom';
 import {
   useReactTable,
   getCoreRowModel,
@@ -16,8 +15,6 @@ import { useAudioStore, AudioMetadata } from '../store/useAudioStore';
 import { Loader2, ListMusic, Filter, ArrowDownAZ, ArrowUpZA, X, FilterX, FileAudio, Activity, Users, Search, Lock, Unlock, Trash2 } from 'lucide-react';
 import { AlphabetScroller } from './ui/alphabet-scroller';
 import { useAlphabetMap } from '../hooks/useAlphabetMap';
-import { useDataGridTooltip } from '../hooks/useDataGridTooltip';
-
 const getExtensionTextColor = (ext: string) => {
   switch (ext) {
     case 'FLAC': return 'text-emerald-400';
@@ -34,6 +31,7 @@ const getSolidBitrateColor = (bitrate?: number | null) => {
   if (bitrate >= 320) return 'bg-pink-600';
   return 'bg-zinc-600';
 };
+
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -79,7 +77,7 @@ const FileNameCell = ({ row }: { row: any }) => {
     <div className="flex items-center justify-between gap-2 max-w-full w-full">
       <div className="truncate min-w-0 flex-1 flex items-center gap-2">
         {isLocked && (
-          <div className="flex items-center justify-center p-1 rounded-full bg-amber-500/10 border border-amber-500/20 shrink-0">
+          <div data-custom-tooltip="Bài hát khoá chỉnh sửa" className="flex items-center justify-center p-1 rounded-full bg-amber-500/10 border border-amber-500/20 shrink-0">
             <Lock size={12} strokeWidth={2.5} className="text-amber-500" />
           </div>
         )}
@@ -260,7 +258,6 @@ export const DataGrid: React.FC = () => {
     }))
   );
   const tableContainerRef = useRef<HTMLDivElement>(null);
-  const tooltipRef = useDataGridTooltip();
 
   const [isScrubbing, setIsScrubbing] = React.useState(false);
   const [isScrollerVisible, setIsScrollerVisible] = React.useState(false);
@@ -862,14 +859,6 @@ export const DataGrid: React.FC = () => {
             ))}
           </div>
         </div>
-        {typeof document !== 'undefined' && createPortal(
-          <div
-            ref={tooltipRef}
-            className="fixed z-9999 px-3 py-1.5 text-xs font-medium rounded-md shadow-md backdrop-blur-xl bg-white/70 text-zinc-800 dark:bg-zinc-800/70 dark:text-white/80 border border-black/10 dark:border-white/10 pointer-events-none"
-            style={{ display: 'none' }}
-          />,
-          document.body
-        )}
       </div>
 
       <Dialog open={filesToDelete !== null} onOpenChange={(open) => !open && setFilesToDelete(null)}>

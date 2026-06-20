@@ -11,7 +11,7 @@
   --color-popover-foreground: var(--zinc-100);
 
   --color-primary: var(--indigo-500);
-  --color-primary-foreground: var(--white);
+  --color-primary-foreground: #ffffff;
 
   --color-secondary: var(--zinc-800);
   --color-secondary-foreground: var(--zinc-100);
@@ -25,8 +25,8 @@
   --color-destructive: var(--red-500);
   --color-destructive-foreground: var(--zinc-100);
 
-  --color-border: color-mix(in srgb, var(--color-white) 10%, transparent);
-  --color-input: color-mix(in srgb, var(--color-white) 10%, transparent);
+  --color-border: color-mix(in srgb, #ffffff 10%, transparent);
+  --color-input: color-mix(in srgb, #ffffff 10%, transparent);
   --color-ring: var(--indigo-500);
 
   --radius-lg: var(--radius-md);
@@ -86,6 +86,10 @@
 
   .btn-gradient-destructive {
     @apply bg-linear-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-bold shadow-lg shadow-red-600/20 border-0 transition-all;
+  }
+
+  .btn-gradient-warning {
+    @apply bg-linear-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white font-bold shadow-lg shadow-amber-500/20 border-0 transition-all;
   }
 
   .mask-fade-y {

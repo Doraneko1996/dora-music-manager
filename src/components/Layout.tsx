@@ -12,6 +12,7 @@ import { Toaster as CustomToaster } from './ui/sonner';
 import { FolderStatsPopup } from './FolderStatsPopup';
 import { useFileSystemWatcher } from '../hooks/useFileSystemWatcher';
 import { LockOverlay } from './ui/lock-overlay';
+import { GlobalTooltip } from './GlobalTooltip';
 
 export const Layout: React.FC = () => {
   const {
@@ -115,6 +116,7 @@ export const Layout: React.FC = () => {
         icon={<Loader2 className="w-12 h-12 animate-spin" />}
         className="fixed inset-0 z-9999 bg-black/40 backdrop-blur-[2px]"
       />
+      <GlobalTooltip />
     </div>
   );
 };
