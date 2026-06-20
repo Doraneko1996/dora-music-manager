@@ -7,14 +7,11 @@ import { useEffect, useRef } from 'react';
  * @param containerRef Tham chiếu tới thẻ bao bọc (thường là thẻ scroll).
  * @returns tooltipRef Tham chiếu tới thẻ div dùng làm tooltip.
  */
-export function useDataGridTooltip(containerRef: React.RefObject<HTMLElement | null>) {
+export function useDataGridTooltip() {
   const tooltipRef = useRef<HTMLDivElement>(null);
   const tooltipTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
     const handleMouseOver = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
       const tooltipEl = target.closest('[data-custom-tooltip]');
@@ -57,7 +54,8 @@ export function useDataGridTooltip(containerRef: React.RefObject<HTMLElement | n
       }
     };
 
-    const handleScroll = () => {
+    const handleScroll = (_e: Event) => {
+      // Chỉ ẩn nếu scroll xảy ra bên trong ứng dụng, bỏ qua nếu scroll trên chính tooltip (dù không có)
       if (tooltipTimeoutRef.current) clearTimeout(tooltipTimeoutRef.current);
       if (tooltipRef.current) {
         tooltipRef.current.style.display = 'none';
@@ -71,21 +69,21 @@ export function useDataGridTooltip(containerRef: React.RefObject<HTMLElement | n
       }
     };
 
-    container.addEventListener('mouseover', handleMouseOver);
-    container.addEventListener('mouseout', handleMouseOut);
-    container.addEventListener('scroll', handleScroll);
-    container.addEventListener('contextmenu', handleContextMenu);
-    container.addEventListener('mousedown', handleContextMenu); // Cùng logic ẩn tooltip
+    document.addEventListener('mouseover', handleMouseOver);
+    document.addEventListener('mouseout', handleMouseOut);
+    document.addEventListener('scroll', handleScroll, true); // true để bắt sự kiện scroll của bất kỳ thẻ con nào
+    document.addEventListener('contextmenu', handleContextMenu);
+    document.addEventListener('mousedown', handleContextMenu);
 
     return () => {
-      container.removeEventListener('mouseover', handleMouseOver);
-      container.removeEventListener('mouseout', handleMouseOut);
-      container.removeEventListener('scroll', handleScroll);
-      container.removeEventListener('contextmenu', handleContextMenu);
-      container.removeEventListener('mousedown', handleContextMenu);
+      document.removeEventListener('mouseover', handleMouseOver);
+      document.removeEventListener('mouseout', handleMouseOut);
+      document.removeEventListener('scroll', handleScroll, true);
+      document.removeEventListener('contextmenu', handleContextMenu);
+      document.removeEventListener('mousedown', handleContextMenu);
       if (tooltipTimeoutRef.current) clearTimeout(tooltipTimeoutRef.current);
     };
-  }, [containerRef]);
+  }, []);
 
   return tooltipRef;
 }
