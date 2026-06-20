@@ -11,8 +11,9 @@ import {
   ColumnDef,
 } from '@tanstack/react-table';
 import { useVirtualizer } from '@tanstack/react-virtual';
+import { useShallow } from 'zustand/react/shallow';
 import { useAudioStore, AudioMetadata } from '../store/useAudioStore';
-import { Loader2, ListMusic, Filter, ArrowDownAZ, ArrowUpZA, X, FilterX, FileAudio, Activity, Users, Search } from 'lucide-react';
+import { Loader2, ListMusic, Filter, ArrowDownAZ, ArrowUpZA, X, FilterX, FileAudio, Activity, Users, Search, Lock, Unlock, Trash2 } from 'lucide-react';
 import { AlphabetScroller } from './ui/alphabet-scroller';
 import { useAlphabetMap } from '../hooks/useAlphabetMap';
 import { useDataGridTooltip } from '../hooks/useDataGridTooltip';
@@ -47,14 +48,223 @@ import {
   DropdownMenuSubContent,
 } from "./ui/dropdown-menu";
 import { Checkbox } from './ui/checkbox';
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuTrigger,
+} from "./ui/context-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogClose,
+} from "./ui/dialog";
+import { Button } from "./ui/button";
+
+const FileNameCell = ({ row }: { row: any }) => {
+  const filePath = row.original.file_path;
+  const isLocked = useAudioStore(state => state.lockedFiles.includes(filePath));
+  const fileName = row.original.file_name;
+  const lastDotIndex = fileName.lastIndexOf('.');
+  const baseName = lastDotIndex !== -1 ? fileName.substring(0, lastDotIndex) : fileName;
+  const extension = lastDotIndex !== -1 ? fileName.substring(lastDotIndex + 1).toUpperCase() : '';
+  const bitrate = row.original.bitrate ? `${Math.round(row.original.bitrate)} kbps` : null;
+
+  return (
+    <div className="flex items-center justify-between gap-2 max-w-full w-full">
+      <div className="truncate min-w-0 flex-1 flex items-center gap-2">
+        {isLocked && (
+          <div className="flex items-center justify-center p-1 rounded-full bg-amber-500/10 border border-amber-500/20 shrink-0">
+            <Lock size={12} strokeWidth={2.5} className="text-amber-500" />
+          </div>
+        )}
+        <div data-custom-tooltip={fileName} className="truncate w-full">
+          {baseName}
+        </div>
+      </div>
+      <div className="flex flex-col items-end gap-1 shrink-0">
+        {bitrate && (
+          <span className={`px-1.5 py-0.5 rounded-sm text-[9px] font-bold leading-none text-white shadow-sm ${getSolidBitrateColor(row.original.bitrate)}`}>
+            {bitrate}
+          </span>
+        )}
+        {extension && (
+          <span className={`text-[10px] font-semibold uppercase leading-none ${getExtensionTextColor(extension)}`}>
+            {extension}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const SelectHeader: React.FC<{ filteredFiles: AudioMetadata[] }> = ({ filteredFiles }) => {
+  const { selectedFiles, setSelectedFiles, isEditing } = useAudioStore();
+  const isAllSelected = filteredFiles.length > 0 && selectedFiles.length === filteredFiles.length;
+  const isSomeSelected = selectedFiles.length > 0 && selectedFiles.length < filteredFiles.length;
+
+  return (
+    <div
+      className={`flex items-center justify-center w-full h-full min-h-10 ${!isEditing ? 'cursor-pointer' : ''}`}
+      onClick={(e) => {
+        e.stopPropagation();
+        if (isEditing) return;
+        if (isAllSelected) {
+          setSelectedFiles([]);
+        } else {
+          setSelectedFiles(filteredFiles.map(f => f.file_path));
+        }
+      }}
+    >
+      <Checkbox
+        checked={isAllSelected ? true : isSomeSelected ? "indeterminate" : false}
+        disabled={isEditing}
+        aria-label="Select all"
+        className="pointer-events-none"
+      />
+    </div>
+  );
+};
+
+const SelectCell: React.FC<{ filePath: string }> = ({ filePath }) => {
+  const { selectedFiles, setSelectedFiles, isEditing } = useAudioStore();
+  const isSelected = selectedFiles.includes(filePath);
+
+  return (
+    <div
+      className={`flex items-center justify-center w-full h-full min-h-10 ${!isEditing ? 'cursor-pointer' : ''}`}
+      onClick={(e) => {
+        e.stopPropagation();
+        if (isEditing) return;
+        if (isSelected) {
+          setSelectedFiles(selectedFiles.filter(p => p !== filePath));
+        } else {
+          setSelectedFiles([...selectedFiles, filePath]);
+        }
+      }}
+    >
+      <Checkbox
+        checked={isSelected}
+        disabled={isEditing}
+        aria-label="Select row"
+        className="pointer-events-none"
+      />
+    </div>
+  );
+};
+
+const DataGridRow = ({ virtualRow, row, setFilesToDelete, style }: any) => {
+  const filePath = row.original.file_path;
+  const isSelected = useAudioStore(state => state.selectedFiles.includes(filePath));
+  const isLocked = useAudioStore(state => state.lockedFiles.includes(filePath));
+
+  const handleRowClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    const state = useAudioStore.getState();
+    if (state.isEditing) return;
+
+    if (e.ctrlKey || e.metaKey) {
+      if (state.selectedFiles.includes(filePath)) {
+        state.setSelectedFiles(state.selectedFiles.filter(p => p !== filePath));
+      } else {
+        state.setSelectedFiles([...state.selectedFiles, filePath]);
+      }
+    } else {
+      if (state.selectedFiles.length === 1 && state.selectedFiles[0] === filePath) {
+        state.setSelectedFiles([]);
+      } else {
+        state.setSelectedFiles([filePath]);
+      }
+    }
+  };
+
+  const handleContextMenu = () => {
+    const state = useAudioStore.getState();
+    if (!state.selectedFiles.includes(filePath)) {
+      state.setSelectedFiles([filePath]);
+    }
+  };
+
+  const handleToggleLock = () => {
+    const state = useAudioStore.getState();
+    const anyUnlocked = state.selectedFiles.some(f => !state.lockedFiles.includes(f));
+    state.toggleLock(state.selectedFiles, anyUnlocked);
+  };
+
+  return (
+    <ContextMenu>
+      <ContextMenuTrigger asChild onContextMenu={handleContextMenu}>
+        <div
+          data-index={virtualRow.index}
+          onClick={handleRowClick}
+          className={`flex w-full items-stretch cursor-pointer select-none transition-all duration-300 relative group overflow-hidden border-b border-white/5 ${isSelected ? 'row-active-bg after:absolute after:left-0 after:top-0 after:bottom-0 after:w-0.75 after:bg-indigo-500' : 'row-hover-bg'} ${isLocked ? 'opacity-75 bg-[repeating-linear-gradient(45deg,transparent,transparent_10px,rgba(245,158,11,0.04)_10px,rgba(245,158,11,0.04)_20px)]' : ''}`}
+          style={style}
+        >
+          <div className="row-gradient-overlay" />
+          {row.getVisibleCells().map((cell: any) => {
+            let value = cell.getValue();
+            if (value === null || value === undefined) value = "";
+
+            return (
+              <div
+                key={cell.id}
+                className={`py-1.5 text-zinc-300 flex items-center border-r border-white/5 last:border-r-0 z-10 ${cell.column.id === 'select' ? 'px-0 justify-center' : 'px-3'}`}
+                style={{ width: cell.column.getSize() }}
+              >
+                <div className={cell.column.id === 'select' ? 'w-full flex justify-center items-center h-full' : 'truncate w-full block'}>
+                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </ContextMenuTrigger>
+      <ContextMenuContent className="w-48 z-200">
+        <ContextMenuItem onClick={handleToggleLock}>
+          {useAudioStore.getState().selectedFiles.some(f => !useAudioStore.getState().lockedFiles.includes(f)) ? (
+            <><Lock className="text-amber-500" /> <span>Khoá tệp ({useAudioStore.getState().selectedFiles.length})</span></>
+          ) : (
+            <><Unlock className="text-emerald-500" /> <span>Mở khoá tệp ({useAudioStore.getState().selectedFiles.length})</span></>
+          )}
+        </ContextMenuItem>
+        <ContextMenuSeparator />
+        <ContextMenuItem
+          onSelect={() => {
+            setTimeout(() => {
+              setFilesToDelete(useAudioStore.getState().selectedFiles);
+            }, 100);
+          }}
+          className="text-rose-400 focus:from-rose-500/0 focus:to-rose-500/15 focus:text-rose-400"
+        >
+          <Trash2 />
+          <span>Xoá tệp ({useAudioStore.getState().selectedFiles.length})</span>
+        </ContextMenuItem>
+      </ContextMenuContent>
+    </ContextMenu>
+  );
+};
 
 export const DataGrid: React.FC = () => {
-  const { musicFiles, selectedFiles, setSelectedFiles, isScanning, isEditing, directoryPath, searchQuery } = useAudioStore();
+  const { musicFiles, isScanning, directoryPath, searchQuery, removeFiles } = useAudioStore(
+    useShallow(state => ({
+      musicFiles: state.musicFiles,
+      isScanning: state.isScanning,
+      directoryPath: state.directoryPath,
+      searchQuery: state.searchQuery,
+      removeFiles: state.removeFiles,
+    }))
+  );
   const tableContainerRef = useRef<HTMLDivElement>(null);
   const tooltipRef = useDataGridTooltip(tableContainerRef);
 
   const [isScrubbing, setIsScrubbing] = React.useState(false);
   const [isScrollerVisible, setIsScrollerVisible] = React.useState(false);
+  const [filesToDelete, setFilesToDelete] = React.useState<string[] | null>(null);
 
   const filteredMusicFiles = useMemo(() => {
     if (!searchQuery) return musicFiles;
@@ -69,8 +279,8 @@ export const DataGrid: React.FC = () => {
 
   // Reset selection when folder changes
   useEffect(() => {
-    setSelectedFiles([]);
-  }, [directoryPath, setSelectedFiles]);
+    useAudioStore.getState().setSelectedFiles([]);
+  }, [directoryPath]);
 
   const columns = useMemo<ColumnDef<AudioMetadata>[]>(
     () => {
@@ -163,58 +373,8 @@ export const DataGrid: React.FC = () => {
 
       const selectColumn: ColumnDef<AudioMetadata> = {
         id: 'select',
-        header: () => {
-          const isAllSelected = filteredMusicFiles.length > 0 && selectedFiles.length === filteredMusicFiles.length;
-          const isSomeSelected = selectedFiles.length > 0 && selectedFiles.length < filteredMusicFiles.length;
-
-          return (
-            <div
-              className={`flex items-center justify-center w-full h-full min-h-10 ${!isEditing ? 'cursor-pointer' : ''}`}
-              onClick={(e) => {
-                e.stopPropagation();
-                if (isEditing) return;
-                if (isAllSelected) {
-                  setSelectedFiles([]);
-                } else {
-                  setSelectedFiles(filteredMusicFiles.map(f => f.file_path));
-                }
-              }}
-            >
-              <Checkbox
-                checked={isAllSelected ? true : isSomeSelected ? "indeterminate" : false}
-                disabled={isEditing}
-                aria-label="Select all"
-                className="pointer-events-none"
-              />
-            </div>
-          );
-        },
-        cell: ({ row }) => {
-          const filePath = row.original.file_path;
-          const isSelected = selectedFiles.includes(filePath);
-
-          return (
-            <div
-              className={`flex items-center justify-center w-full h-full min-h-10 ${!isEditing ? 'cursor-pointer' : ''}`}
-              onClick={(e) => {
-                e.stopPropagation();
-                if (isEditing) return;
-                if (isSelected) {
-                  setSelectedFiles(selectedFiles.filter(p => p !== filePath));
-                } else {
-                  setSelectedFiles([...selectedFiles, filePath]);
-                }
-              }}
-            >
-              <Checkbox
-                checked={isSelected}
-                disabled={isEditing}
-                aria-label="Select row"
-                className="pointer-events-none"
-              />
-            </div>
-          );
-        },
+        header: () => <SelectHeader filteredFiles={filteredMusicFiles} />,
+        cell: ({ row }) => <SelectCell filePath={row.original.file_path} />,
         size: 40,
         enableSorting: false,
         enableColumnFilter: false,
@@ -227,35 +387,7 @@ export const DataGrid: React.FC = () => {
           header: 'File Name',
           size: calcSize(maxLen.file_name, 150, 400),
           filterFn: dataFilterFn,
-          cell: ({ row }) => {
-            const fileName = row.original.file_name;
-            const lastDotIndex = fileName.lastIndexOf('.');
-            const baseName = lastDotIndex !== -1 ? fileName.substring(0, lastDotIndex) : fileName;
-            const extension = lastDotIndex !== -1 ? fileName.substring(lastDotIndex + 1).toUpperCase() : '';
-            const bitrate = row.original.bitrate ? `${Math.round(row.original.bitrate)} kbps` : null;
-
-            return (
-              <div className="flex items-center justify-between gap-2 max-w-full w-full">
-                <div className="truncate min-w-0 flex-1">
-                  <div data-custom-tooltip={fileName} className="truncate w-full">
-                    {baseName}
-                  </div>
-                </div>
-                <div className="flex flex-col items-end gap-1 shrink-0">
-                  {bitrate && (
-                    <span className={`px-1.5 py-0.5 rounded-sm text-[9px] font-bold leading-none text-white shadow-sm ${getSolidBitrateColor(row.original.bitrate)}`}>
-                      {bitrate}
-                    </span>
-                  )}
-                  {extension && (
-                    <span className={`text-[10px] font-semibold uppercase leading-none ${getExtensionTextColor(extension)}`}>
-                      {extension}
-                    </span>
-                  )}
-                </div>
-              </div>
-            );
-          }
+          cell: ({ row }) => <FileNameCell row={row} />
         },
         {
           accessorKey: 'title',
@@ -294,7 +426,7 @@ export const DataGrid: React.FC = () => {
         },
       ];
     },
-    [filteredMusicFiles, selectedFiles, setSelectedFiles, isEditing]
+    [filteredMusicFiles]
   );
 
   const availableExtensions = useMemo(() => {
@@ -337,25 +469,6 @@ export const DataGrid: React.FC = () => {
     estimateSize: () => 40, // Match the actual row height of 40px
     overscan: 25, // Increase overscan slightly for smoother fast scrolling
   });
-
-  const handleRowClick = (e: React.MouseEvent, filePath: string) => {
-    e.preventDefault();
-    if (isEditing) return;
-
-    if (e.ctrlKey || e.metaKey) {
-      if (selectedFiles.includes(filePath)) {
-        setSelectedFiles(selectedFiles.filter(p => p !== filePath));
-      } else {
-        setSelectedFiles([...selectedFiles, filePath]);
-      }
-    } else {
-      if (selectedFiles.length === 1 && selectedFiles[0] === filePath) {
-        setSelectedFiles([]);
-      } else {
-        setSelectedFiles([filePath]);
-      }
-    }
-  };
 
   if (isScanning) {
     return (
@@ -738,39 +851,15 @@ export const DataGrid: React.FC = () => {
               transform: `translateY(${rowVirtualizer.getVirtualItems()[0]?.start ?? 0}px)`,
             }}
           >
-            {rowVirtualizer.getVirtualItems().map(virtualRow => {
-              const row = rows[virtualRow.index];
-              const isSelected = selectedFiles.includes(row.original.file_path);
-
-              return (
-                <div
-                  key={row.id}
-                  data-index={virtualRow.index}
-                  onClick={(e) => handleRowClick(e, row.original.file_path)}
-                  className={`flex w-full items-stretch cursor-pointer select-none transition-all duration-300 relative group overflow-hidden border-b border-white/5 ${isSelected ? 'row-active-bg after:absolute after:left-0 after:top-0 after:bottom-0 after:w-0.75 after:bg-indigo-500' : 'row-hover-bg'
-                    }`}
-                  style={{ height: '40px' }}
-                >
-                  <div className="row-gradient-overlay" />
-                  {row.getVisibleCells().map(cell => {
-                    let value = cell.getValue();
-                    if (value === null || value === undefined) value = "";
-
-                    return (
-                      <div
-                        key={cell.id}
-                        className={`py-1.5 text-zinc-300 flex items-center border-r border-white/5 last:border-r-0 z-10 ${cell.column.id === 'select' ? 'px-0 justify-center' : 'px-3'}`}
-                        style={{ width: cell.column.getSize() }}
-                      >
-                        <div className={cell.column.id === 'select' ? 'w-full flex justify-center items-center h-full' : 'truncate w-full block'}>
-                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              );
-            })}
+            {rowVirtualizer.getVirtualItems().map(virtualRow => (
+              <DataGridRow
+                key={rows[virtualRow.index].id}
+                virtualRow={virtualRow}
+                row={rows[virtualRow.index]}
+                setFilesToDelete={setFilesToDelete}
+                style={{ height: '40px' }}
+              />
+            ))}
           </div>
         </div>
         {typeof document !== 'undefined' && createPortal(
@@ -782,6 +871,38 @@ export const DataGrid: React.FC = () => {
           document.body
         )}
       </div>
+
+      <Dialog open={filesToDelete !== null} onOpenChange={(open) => !open && setFilesToDelete(null)}>
+        <DialogContent className="sm:max-w-100 bg-zinc-950 border border-white/10 text-white shadow-2xl shadow-black">
+          <DialogHeader>
+            <DialogTitle className="text-zinc-100 flex items-center gap-2 text-[17px]">
+              <Trash2 className="text-red-500 w-5 h-5" />
+              Xoá tệp vĩnh viễn?
+            </DialogTitle>
+            <DialogDescription className="text-zinc-400 pt-2 text-sm leading-relaxed">
+              Bạn có chắc chắn muốn đưa <span className="font-bold text-white">{filesToDelete?.length} tệp âm thanh</span> này vào thùng rác? Thao tác này sẽ dọn các file khỏi hệ thống của ứng dụng hiện tại.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="secondary" className="border border-white/10 bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white transition-all cursor-pointer">Huỷ</Button>
+            </DialogClose>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                if (filesToDelete) {
+                  removeFiles(filesToDelete);
+                  setFilesToDelete(null);
+                }
+              }}
+              className="btn-gradient-destructive cursor-pointer px-5"
+            >
+              Chắc chắn xoá
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 };

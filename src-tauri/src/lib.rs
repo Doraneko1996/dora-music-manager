@@ -47,6 +47,16 @@ fn convert_image_to_png(path: String) -> Result<String, String> {
     convert_image_to_png_logic(&path)
 }
 
+#[tauri::command]
+async fn move_to_trash(paths: Vec<String>) -> Result<(), String> {
+    for path in paths {
+        if let Err(e) = trash::delete(&path) {
+            return Err(format!("Lỗi khi xoá {}: {}", path, e));
+        }
+    }
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -61,7 +71,8 @@ pub fn run() {
             update_metadata_batch,
             process_and_embed_artwork,
             get_cover_art,
-            convert_image_to_png
+            convert_image_to_png,
+            move_to_trash
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

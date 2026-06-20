@@ -34,6 +34,7 @@ interface AudioStoreState {
   musicFiles: AudioMetadata[];
   aggregatedData: AggregatedMetadata | null;
   selectedFiles: string[];
+  lockedFiles: string[];
   directoryPath: string;
   isScanning: boolean;
   isSyncing: boolean;
@@ -65,15 +66,27 @@ interface AudioStoreState {
   saveChanges: () => Promise<void>;
   applyFilenamesToTitles: () => Promise<void>;
   clearMetadata: () => Promise<void>;
-  refreshData: () => Promise<void>;
+  refreshData: (silent?: boolean) => Promise<void>;
   syncFileSystemChanges: (removedPaths: string[], updatedFiles: AudioMetadata[], partialAggregated: AggregatedMetadata | null) => void;
+  toggleLock: (paths: string[], isLocked: boolean) => void;
+  removeFiles: (paths: string[]) => Promise<void>;
   resetStore: () => void;
 }
+
+const getInitialLockedFiles = (): string[] => {
+  try {
+    const data = localStorage.getItem('dora-locked-files');
+    return data ? JSON.parse(data) : [];
+  } catch {
+    return [];
+  }
+};
 
 export const useAudioStore = create<AudioStoreState>((set, get) => ({
   musicFiles: [],
   aggregatedData: null,
   selectedFiles: [],
+  lockedFiles: getInitialLockedFiles(),
   directoryPath: '',
   isScanning: false,
   isSyncing: false,
@@ -297,7 +310,7 @@ export const useAudioStore = create<AudioStoreState>((set, get) => ({
     }
   },
 
-  refreshData: async () => {
+  refreshData: async (silent = false) => {
     const state = get();
     if (!state.directoryPath) return;
 
@@ -308,10 +321,10 @@ export const useAudioStore = create<AudioStoreState>((set, get) => ({
         musicFiles: result.files,
         aggregatedData: result.aggregated
       });
-      toast.success("Đã làm mới dữ liệu nhạc");
+      if (!silent) toast.success("Đã làm mới dữ liệu nhạc");
     } catch (error) {
       console.error("Lỗi khi làm mới dữ liệu:", error);
-      toast.error(`Lỗi làm mới: ${error}`);
+      if (!silent) toast.error(`Lỗi làm mới: ${error}`);
     } finally {
       set({ isScanning: false });
     }
@@ -410,5 +423,51 @@ export const useAudioStore = create<AudioStoreState>((set, get) => ({
     }
 
     set(stateUpdates);
+  },
+
+  toggleLock: (paths: string[], isLocked: boolean) => {
+    const state = get();
+    let newLockedFiles = [...state.lockedFiles];
+    
+    if (isLocked) {
+      const toAdd = paths.filter(p => !newLockedFiles.includes(p));
+      newLockedFiles = [...newLockedFiles, ...toAdd];
+    } else {
+      newLockedFiles = newLockedFiles.filter(p => !paths.includes(p));
+    }
+    
+    localStorage.setItem('dora-locked-files', JSON.stringify(newLockedFiles));
+    set({ lockedFiles: newLockedFiles });
+  },
+
+  removeFiles: async (paths: string[]) => {
+    const state = get();
+    try {
+      set({ isScanning: true });
+      await invoke('move_to_trash', { paths });
+      
+      const newMusicFiles = state.musicFiles.filter(f => !paths.includes(f.file_path));
+      const newSelectedFiles = state.selectedFiles.filter(f => !paths.includes(f));
+      
+      set({ 
+        musicFiles: newMusicFiles,
+        selectedFiles: newSelectedFiles,
+      });
+      
+      if (newSelectedFiles.length === 0) {
+        set({ isEditing: false, pendingMetadata: {}, pendingArtworkPath: null });
+      }
+      
+      toast.success(`Đã đưa ${paths.length} file vào thùng rác.`);
+      
+      // Khởi chạy ngầm đồng bộ hoá lại thư mục (không hiện toast thứ 2)
+      get().refreshData(true);
+      
+    } catch (error) {
+      console.error("Lỗi khi xoá file:", error);
+      toast.error(`Lỗi khi xoá: ${error}`);
+    } finally {
+      set({ isScanning: false });
+    }
   }
 }));

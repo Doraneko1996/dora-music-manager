@@ -5,7 +5,7 @@ import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Button } from '../ui/button';
 import { Form, FormControl, FormField, FormItem } from '../ui/form';
-import { Music, Save, X, Edit3, Trash2, FileText, Disc3, Tag } from 'lucide-react';
+import { Music, Save, X, Edit3, Trash2, FileText, Disc3, Tag, Lock } from 'lucide-react';
 import { invoke } from '@tauri-apps/api/core';
 import { cn } from '../../lib/utils';
 import { calculateCommonMetadata, FormValues } from '../../lib/metadataUtils';
@@ -32,7 +32,7 @@ export const TrackEditForm: React.FC = () => {
     musicFiles, selectedFiles, setSelectedFiles, clearMetadata,
     setPendingMetadata, setPendingArtworkPath,
     setCurrentArtworkBase64, saveChanges,
-    isEditing, setIsEditing
+    isEditing, setIsEditing, lockedFiles
   } = useAudioStore();
 
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
@@ -59,14 +59,15 @@ export const TrackEditForm: React.FC = () => {
       setPendingMetadata({});
     }
 
-    // Tải ảnh bìa hiện tại nếu chỉ chọn 1 file
     if (selectedFiles.length === 1) {
-      invoke('get_cover_art', { path: selectedFiles[0] })
-        .then((res: any) => setCurrentArtworkBase64(res || null))
-        .catch((err) => {
-          console.error("Lỗi khi load ảnh:", err);
-          setCurrentArtworkBase64(null);
-        });
+      const currentFile = musicFiles.find(f => f.file_path === selectedFiles[0]);
+      if (currentFile && currentFile.has_cover) {
+        invoke('get_cover_art', { path: currentFile.file_path }).then((base64) => {
+          setCurrentArtworkBase64(base64 as string | null);
+        }).catch(() => setCurrentArtworkBase64(null));
+      } else {
+        setCurrentArtworkBase64(null);
+      }
     } else {
       setCurrentArtworkBase64(null);
     }
@@ -96,6 +97,7 @@ export const TrackEditForm: React.FC = () => {
   }, [setIsEditing, setPendingMetadata, setPendingArtworkPath, setCurrentArtworkBase64]);
 
   const isDisabled = selectedFiles.length === 0;
+  const isLockedSelection = selectedFiles.some(f => lockedFiles.includes(f));
 
   const handleCancel = () => {
     const common = calculateCommonMetadata(selectedFiles, musicFiles);
@@ -111,22 +113,8 @@ export const TrackEditForm: React.FC = () => {
   };
 
   const handleClearAllMetadata = async () => {
+    await clearMetadata();
     setIsConfirmOpen(false);
-    
-    const emptyMetadata: Partial<AudioMetadata> = {
-      title: "",
-      artist: "",
-      album: "",
-      genre: "",
-      year: undefined,
-    };
-    
-    setPendingMetadata(emptyMetadata);
-    setPendingArtworkPath(""); 
-    
-    // Gọi hàm lưu nhưng với dữ liệu trống
-    setIsEditing(true);
-    await saveChanges();
   };
 
   const handleBulkAlbumSave = async () => {
@@ -152,23 +140,39 @@ export const TrackEditForm: React.FC = () => {
     );
   }
 
+  if (isLockedSelection) {
+    return (
+      <div className="flex flex-col h-full items-center text-zinc-500 p-8 text-center bg-zinc-950/30 rounded-lg border border-amber-500/20">
+        <div className="w-16 h-16 rounded-full bg-amber-500/10 flex items-center justify-center mb-4 mt-12 shadow-inner border border-amber-500/20">
+          <Lock size={28} className="text-amber-500 opacity-80" />
+        </div>
+        <p className="font-bold text-[16px] text-amber-500 mb-2">Tệp đang bị khoá</p>
+        <p className="text-sm mt-2 text-zinc-400 leading-relaxed">
+          Có <span className="text-white font-medium">{selectedFiles.filter(f => lockedFiles.includes(f)).length} tệp</span> bị khoá trong danh sách bạn chọn.
+          <br />
+          Bạn không thể thay đổi thông tin của tệp bị khoá. Bỏ chọn hoặc mở khoá để tiếp tục.
+        </p>
+      </div>
+    );
+  }
+
   const inputClass = cn(
     "transition-all duration-300 w-full",
-    isEditing 
-      ? "bg-white/5 border-white/10 hover:bg-white/10 hover:text-white focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus-visible:border-indigo-500 focus-visible:bg-white/10" 
+    isEditing
+      ? "bg-white/5 border-white/10 hover:bg-white/10 hover:text-white focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus-visible:border-indigo-500 focus-visible:bg-white/10"
       : "border-transparent bg-transparent shadow-none focus-visible:ring-0 focus-visible:border-transparent focus-visible:bg-transparent cursor-default select-text"
   );
 
   if (selectedFiles.length > 1) {
     return (
       <div className="flex flex-col gap-4 w-full h-[calc(100vh-160px)]">
-        <TrackList 
-          files={musicFiles.filter(f => selectedFiles.includes(f.file_path))} 
-          className="flex-1 flex flex-col min-h-0 w-full overflow-hidden" 
+        <TrackList
+          files={musicFiles.filter(f => selectedFiles.includes(f.file_path))}
+          className="flex-1 flex flex-col min-h-0 w-full overflow-hidden"
           title="Danh sách bài hát đang chọn"
           onClearSelection={() => setSelectedFiles([])}
         />
-        
+
         <div className="flex items-center gap-3 shrink-0 mt-2">
           <FilenameToTitleDialog>
             <Button variant="default" className="w-full h-10 gap-2 btn-gradient-brand cursor-pointer" disabled={selectedFiles.length === 0}>
@@ -176,7 +180,7 @@ export const TrackEditForm: React.FC = () => {
               Tên File ➔ Title
             </Button>
           </FilenameToTitleDialog>
-          
+
           <Dialog>
             <DialogTrigger asChild>
               <Button variant="destructive" className="w-full h-10 gap-2 btn-gradient-destructive cursor-pointer" disabled={selectedFiles.length === 0}>
@@ -194,7 +198,7 @@ export const TrackEditForm: React.FC = () => {
                   Bạn sắp xoá toàn bộ thông tin metadata (Title, Artist, Album, Genre, Year) của <span className="font-bold text-white">{selectedFiles.length} bài hát</span>. Hành động này sẽ thay đổi nội dung file gốc và không thể hoàn tác. Bạn có chắc chắn không?
                 </DialogDescription>
               </DialogHeader>
-              
+
               <DialogFooter>
                 <DialogClose asChild>
                   <Button variant="secondary" className="border border-white/10 bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white transition-all cursor-pointer">Hủy</Button>
@@ -207,7 +211,7 @@ export const TrackEditForm: React.FC = () => {
 
         {/* Nút chỉnh sửa hàng loạt */}
         <div className="grid grid-cols-2 gap-3 shrink-0">
-          <Dialog open={bulkAlbumOpen} onOpenChange={(open) => { setBulkAlbumOpen(open); if(open) setBulkAlbumValue(""); }}>
+          <Dialog open={bulkAlbumOpen} onOpenChange={(open) => { setBulkAlbumOpen(open); if (open) setBulkAlbumValue(""); }}>
             <DialogTrigger asChild>
               <Button variant="outline" className="w-full h-10 gap-2 bg-white/5 border-white/10 hover:bg-white/10 hover:text-white transition-all cursor-pointer" disabled={selectedFiles.length === 0}>
                 <Disc3 size={16} className="text-indigo-400" />
@@ -224,12 +228,12 @@ export const TrackEditForm: React.FC = () => {
                   Cập nhật Album cho <span className="font-bold text-white">{selectedFiles.length} bài hát</span> đã chọn.
                 </DialogDescription>
               </DialogHeader>
-              
+
               <div className="px-6 py-4">
-                <AlbumSelect 
-                  value={bulkAlbumValue} 
-                  onChange={setBulkAlbumValue} 
-                  isEditing={true} 
+                <AlbumSelect
+                  value={bulkAlbumValue}
+                  onChange={setBulkAlbumValue}
+                  isEditing={true}
                 />
               </div>
 
@@ -242,7 +246,7 @@ export const TrackEditForm: React.FC = () => {
             </DialogContent>
           </Dialog>
 
-          <Dialog open={bulkGenreOpen} onOpenChange={(open) => { setBulkGenreOpen(open); if(open) setBulkGenreValue(""); }}>
+          <Dialog open={bulkGenreOpen} onOpenChange={(open) => { setBulkGenreOpen(open); if (open) setBulkGenreValue(""); }}>
             <DialogTrigger asChild>
               <Button variant="outline" className="w-full h-10 gap-2 bg-white/5 border-white/10 hover:bg-white/10 hover:text-white transition-all cursor-pointer" disabled={selectedFiles.length === 0}>
                 <Tag size={16} className="text-fuchsia-400" />
@@ -259,12 +263,12 @@ export const TrackEditForm: React.FC = () => {
                   Cập nhật Thể loại cho <span className="font-bold text-white">{selectedFiles.length} bài hát</span> đã chọn.
                 </DialogDescription>
               </DialogHeader>
-              
+
               <div className="px-6 py-4">
-                <GenreSelect 
-                  value={bulkGenreValue} 
-                  onChange={setBulkGenreValue} 
-                  isEditing={true} 
+                <GenreSelect
+                  value={bulkGenreValue}
+                  onChange={setBulkGenreValue}
+                  isEditing={true}
                 />
               </div>
 
@@ -345,10 +349,10 @@ export const TrackEditForm: React.FC = () => {
               render={({ field }) => (
                 <FormItem className="min-w-0">
                   <FormControl>
-                    <ArtistSelect 
-                      value={field.value || ""} 
-                      onChange={field.onChange} 
-                      isEditing={isEditing} 
+                    <ArtistSelect
+                      value={field.value || ""}
+                      onChange={field.onChange}
+                      isEditing={isEditing}
                     />
                   </FormControl>
                 </FormItem>
@@ -364,10 +368,10 @@ export const TrackEditForm: React.FC = () => {
               render={({ field }) => (
                 <FormItem className="min-w-0">
                   <FormControl>
-                    <AlbumSelect 
-                      value={field.value || ""} 
-                      onChange={field.onChange} 
-                      isEditing={isEditing} 
+                    <AlbumSelect
+                      value={field.value || ""}
+                      onChange={field.onChange}
+                      isEditing={isEditing}
                     />
                   </FormControl>
                 </FormItem>
@@ -405,10 +409,10 @@ export const TrackEditForm: React.FC = () => {
                 render={({ field }) => (
                   <FormItem className="min-w-0">
                     <FormControl>
-                      <GenreSelect 
-                        value={field.value || ""} 
-                        onChange={field.onChange} 
-                        isEditing={isEditing} 
+                      <GenreSelect
+                        value={field.value || ""}
+                        onChange={field.onChange}
+                        isEditing={isEditing}
                       />
                     </FormControl>
                   </FormItem>
@@ -418,9 +422,9 @@ export const TrackEditForm: React.FC = () => {
           </div>
         </div>
         <div className="flex-1 shrink flex justify-center w-full min-h-0 items-center">
-          <CoverArtUploader 
-            isEditing={isEditing} 
-            setIsEditing={setIsEditing} 
+          <CoverArtUploader
+            isEditing={isEditing}
+            setIsEditing={setIsEditing}
             maxSizeClassName="max-h-[260px] sm:max-h-[320px] !w-auto aspect-square"
           />
         </div>
@@ -463,7 +467,7 @@ export const TrackEditForm: React.FC = () => {
                   const currentAlbum = watch('album');
                   const { aggregatedData, pendingArtworkPath, currentArtworkBase64 } = useAudioStore.getState();
                   const isNewAlbum = currentAlbum && !aggregatedData?.albums?.some(a => a.album_name === currentAlbum);
-                  
+
                   if (isNewAlbum && !pendingArtworkPath && !currentArtworkBase64) {
                     import('sonner').then(({ toast }) => {
                       toast.error('Cần thêm ảnh bìa', {
@@ -472,7 +476,7 @@ export const TrackEditForm: React.FC = () => {
                     });
                     return;
                   }
-                  
+
                   saveChanges();
                 }}
                 className="flex-1 gap-2 btn-gradient-success cursor-pointer"
@@ -503,16 +507,16 @@ export const TrackEditForm: React.FC = () => {
                 className="border border-white/10 bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white transition-all cursor-pointer"
               >
                 Hủy
-                </Button>
-                <Button
-                  type="button"
-                  variant="destructive"
-                  onClick={handleClearAllMetadata}
-                  className="btn-gradient-destructive cursor-pointer px-5"
-                >
-                  Xác nhận xóa
-                </Button>
-              </DialogFooter>
+              </Button>
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={handleClearAllMetadata}
+                className="btn-gradient-destructive cursor-pointer px-5"
+              >
+                Xác nhận xóa
+              </Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
       </div>

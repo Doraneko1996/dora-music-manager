@@ -64,14 +64,25 @@ export function useDataGridTooltip(containerRef: React.RefObject<HTMLElement | n
       }
     };
 
+    const handleContextMenu = () => {
+      if (tooltipTimeoutRef.current) clearTimeout(tooltipTimeoutRef.current);
+      if (tooltipRef.current) {
+        tooltipRef.current.style.display = 'none';
+      }
+    };
+
     container.addEventListener('mouseover', handleMouseOver);
     container.addEventListener('mouseout', handleMouseOut);
     container.addEventListener('scroll', handleScroll);
+    container.addEventListener('contextmenu', handleContextMenu);
+    container.addEventListener('mousedown', handleContextMenu); // Cùng logic ẩn tooltip
 
     return () => {
       container.removeEventListener('mouseover', handleMouseOver);
       container.removeEventListener('mouseout', handleMouseOut);
       container.removeEventListener('scroll', handleScroll);
+      container.removeEventListener('contextmenu', handleContextMenu);
+      container.removeEventListener('mousedown', handleContextMenu);
       if (tooltipTimeoutRef.current) clearTimeout(tooltipTimeoutRef.current);
     };
   }, [containerRef]);
