@@ -165,7 +165,7 @@ export const TrackEditForm: React.FC = () => {
 
   if (selectedFiles.length > 1) {
     return (
-      <div className="flex flex-col gap-4 w-full h-[calc(100vh-160px)]">
+      <div className="flex flex-col gap-4 w-full h-full min-h-0">
         <TrackList
           files={musicFiles.filter(f => selectedFiles.includes(f.file_path))}
           className="flex-1 flex flex-col min-h-0 w-full overflow-hidden"
