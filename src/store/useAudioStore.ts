@@ -287,10 +287,13 @@ export const useAudioStore = create<AudioStoreState>((set, get) => ({
       if (updates.length > 0) {
         await invoke('update_metadata_batch', { updates });
         const result: any = await invoke('scan_directory', { path: state.directoryPath });
-        const mergedAggregated = mergeAggregatedData(result.aggregated, state.customArtists, state.customAlbums, state.customGenres);
+        const mergedAggregated = mergeAggregatedData(result.aggregated, result.folder_meta.artists, result.folder_meta.albums, result.folder_meta.genres);
         set({
            musicFiles: result.files,
-           aggregatedData: mergedAggregated
+           aggregatedData: mergedAggregated,
+           customArtists: result.folder_meta.artists,
+           customAlbums: result.folder_meta.albums,
+           customGenres: result.folder_meta.genres
         });
       } else {
         set({ musicFiles: updatedFiles });
@@ -327,11 +330,15 @@ export const useAudioStore = create<AudioStoreState>((set, get) => ({
 
       if (updates.length > 0) {
         await invoke('update_metadata_batch', { updates });
+        await invoke('process_and_embed_artwork', { files: state.selectedFiles, imagePath: "" });
         const result: any = await invoke('scan_directory', { path: state.directoryPath });
-        const mergedAggregated = mergeAggregatedData(result.aggregated, state.customArtists, state.customAlbums, state.customGenres);
+        const mergedAggregated = mergeAggregatedData(result.aggregated, result.folder_meta.artists, result.folder_meta.albums, result.folder_meta.genres);
         set({
            musicFiles: result.files,
-           aggregatedData: mergedAggregated
+           aggregatedData: mergedAggregated,
+           customArtists: result.folder_meta.artists,
+           customAlbums: result.folder_meta.albums,
+           customGenres: result.folder_meta.genres
         });
         toast.success(`Đã xoá metadata cho ${state.selectedFiles.length} file.`);
       }
@@ -450,10 +457,13 @@ export const useAudioStore = create<AudioStoreState>((set, get) => ({
       
       if ((hasChanges && updates.length > 0) || state.pendingArtworkPath !== null || (state.selectedFiles.length === 0 && hasChanges)) {
         const result: ScanResult = await invoke('scan_directory', { path: state.directoryPath });
-        const mergedAggregated = mergeAggregatedData(result.aggregated, get().customArtists, get().customAlbums, get().customGenres);
+        const mergedAggregated = mergeAggregatedData(result.aggregated, result.folder_meta.artists, result.folder_meta.albums, result.folder_meta.genres);
         set({
            musicFiles: result.files,
            aggregatedData: mergedAggregated,
+           customArtists: result.folder_meta.artists,
+           customAlbums: result.folder_meta.albums,
+           customGenres: result.folder_meta.genres,
            selectedEntityName: newEntityName
         });
       }
@@ -479,7 +489,7 @@ export const useAudioStore = create<AudioStoreState>((set, get) => ({
     set({ isScanning: true });
     try {
       const result: ScanResult = await invoke('scan_directory', { path: state.directoryPath });
-      const mergedAggregated = mergeAggregatedData(result.aggregated, state.customArtists, state.customAlbums, state.customGenres);
+      const mergedAggregated = mergeAggregatedData(result.aggregated, result.folder_meta.artists, result.folder_meta.albums, result.folder_meta.genres);
       set({
         musicFiles: result.files,
         aggregatedData: mergedAggregated,
@@ -641,33 +651,46 @@ export const useAudioStore = create<AudioStoreState>((set, get) => ({
       });
     } catch (e) {
       console.error("Lỗi khi save folder meta:", e);
+      throw e; // Ném lỗi ra ngoài thay vì nuốt lỗi
     }
   },
 
   addCustomArtist: async (name: string) => {
     const newArtists = [...get().customArtists, name];
-    await get().save_folder_meta(newArtists, get().customAlbums, get().customGenres);
-    set({ 
-      customArtists: newArtists,
-      aggregatedData: mergeAggregatedData(get().aggregatedData, newArtists, get().customAlbums, get().customGenres)
-    });
+    try {
+      await get().save_folder_meta(newArtists, get().customAlbums, get().customGenres);
+      set({ 
+        customArtists: newArtists,
+        aggregatedData: mergeAggregatedData(get().aggregatedData, newArtists, get().customAlbums, get().customGenres)
+      });
+    } catch (e) {
+      toast.error(`Lỗi khi thêm nghệ sĩ: ${e}`);
+    }
   },
 
   addCustomAlbum: async (name: string, coverPath?: string) => {
     const newAlbums = [...get().customAlbums, { album_name: name, cover_path: coverPath || null }];
-    await get().save_folder_meta(get().customArtists, newAlbums, get().customGenres);
-    set({ 
-      customAlbums: newAlbums,
-      aggregatedData: mergeAggregatedData(get().aggregatedData, get().customArtists, newAlbums, get().customGenres)
-    });
+    try {
+      await get().save_folder_meta(get().customArtists, newAlbums, get().customGenres);
+      set({ 
+        customAlbums: newAlbums,
+        aggregatedData: mergeAggregatedData(get().aggregatedData, get().customArtists, newAlbums, get().customGenres)
+      });
+    } catch (e) {
+      toast.error(`Lỗi khi thêm album: ${e}`);
+    }
   },
 
   addCustomGenre: async (name: string) => {
     const newGenres = [...get().customGenres, name];
-    await get().save_folder_meta(get().customArtists, get().customAlbums, newGenres);
-    set({ 
-      customGenres: newGenres,
-      aggregatedData: mergeAggregatedData(get().aggregatedData, get().customArtists, get().customAlbums, newGenres)
-    });
+    try {
+      await get().save_folder_meta(get().customArtists, get().customAlbums, newGenres);
+      set({ 
+        customGenres: newGenres,
+        aggregatedData: mergeAggregatedData(get().aggregatedData, get().customArtists, get().customAlbums, newGenres)
+      });
+    } catch (e) {
+      toast.error(`Lỗi khi thêm thể loại: ${e}`);
+    }
   }
 }));

@@ -92,8 +92,21 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
       isPng = pendingPath.toLowerCase().endsWith('.png');
       format = pendingPath.split('.').pop()?.toUpperCase() || "UNK";
     } else if (imageSource) {
-      isPng = imageSource.startsWith('data:image/png');
-      format = isPng ? "PNG" : "JPG";
+      if (imageSource.startsWith('data:image/')) {
+        isPng = imageSource.startsWith('data:image/png');
+        format = isPng ? "PNG" : "JPG";
+      } else {
+        // Có thể là asset:// hoặc blob://, hoặc đường dẫn http thông thường
+        // Lấy từ đuôi mở rộng (nếu có)
+        const urlWithoutQuery = imageSource.split('?')[0];
+        isPng = urlWithoutQuery.toLowerCase().endsWith('.png');
+        format = isPng ? "PNG" : (urlWithoutQuery.split('.').pop()?.toUpperCase() || "UNK");
+        
+        // Default to JPG if still UNK and no valid extension found
+        if (format !== "PNG" && format !== "JPG" && format !== "JPEG" && format !== "WEBP") {
+          format = "JPG";
+        }
+      }
     }
 
     const isSquare = width === height;

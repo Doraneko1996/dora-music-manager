@@ -6,17 +6,77 @@ import { Label } from '../ui/label';
 import { Button } from '../ui/button';
 import { Form, FormControl, FormField, FormItem } from '../ui/form';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
-import { Music, Save, X, Edit3 } from 'lucide-react';
+import { Music, Save, X, Edit3, Trash2, AlertTriangle } from 'lucide-react';
+import { invoke } from '@tauri-apps/api/core';
 import { cn } from '../../lib/utils';
 import { calculateCommonMetadata, FormValues } from '../../lib/metadataUtils';
 import { TrackList } from '../TrackList';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../ui/dialog';
+import { HoldButton } from '../ui/hold-button';
+import { toast } from 'sonner';
 
 export const ArtistEditForm: React.FC = () => {
   const {
     musicFiles, selectedFiles,
     setPendingMetadata, saveChanges,
-    isEditing, setIsEditing, selectedEntityName
+    isEditing, setIsEditing, selectedEntityName, customArtists,
+    save_folder_meta, refreshData
   } = useAudioStore();
+
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
+
+  const handleDeleteArtist = async () => {
+    if (!selectedEntityName) return;
+    
+    const artistFiles = musicFiles.filter(f => f.artist && f.artist.includes(selectedEntityName));
+    
+    try {
+      if (artistFiles.length > 0) {
+        const updates = artistFiles.map(file => {
+          let newArtist = file.artist || "";
+          
+          // Escape selectedEntityName for regex
+          const escapedName = selectedEntityName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          const regex = new RegExp(`\\b${escapedName}\\b`, 'gi');
+          newArtist = newArtist.replace(regex, '');
+          
+          newArtist = newArtist.replace(/,\s*,/g, ',')
+                               .replace(/^[\s,]+|[\s,]+$/g, '')
+                               .replace(/\s(ft\.?|feat\.?)\s*$/i, '')
+                               .replace(/^(ft\.?|feat\.?)\s+/i, '');
+          
+          if (/^(ft\.?|feat\.?)$/i.test(newArtist.trim())) {
+              newArtist = "";
+          }
+
+          return {
+            file_path: file.file_path,
+            artist: newArtist.trim(),
+            file_name: file.file_name || "",
+            has_cover: false
+          };
+        });
+        
+        await invoke('update_metadata_batch', { updates });
+      }
+
+      const newCustomArtists = customArtists.filter(a => a !== selectedEntityName);
+      const { customAlbums, customGenres } = useAudioStore.getState();
+      await save_folder_meta(newCustomArtists, customAlbums, customGenres);
+      
+      setIsDeleteDialogOpen(false);
+      toast.success(`Đã xoá nghệ sĩ "${selectedEntityName}" khỏi hệ thống.`);
+      
+      const { setSelectedEntityName, setSelectedFiles } = useAudioStore.getState();
+      setSelectedEntityName(null);
+      setSelectedFiles([]);
+      await refreshData(true);
+      
+    } catch (e) {
+      console.error(e);
+      toast.error(`Lỗi khi xoá nghệ sĩ: ${e}`);
+    }
+  };
 
 
   const form = useForm<FormValues>({
@@ -139,14 +199,24 @@ export const ArtistEditForm: React.FC = () => {
 
         <div className="pt-3 border-t border-white/5 shrink-0 flex flex-col gap-2">
           {!isEditing ? (
-            <Button
-              type="button"
-              onClick={() => setIsEditing(true)}
-              className="w-full gap-2 btn-gradient-primary cursor-pointer"
-            >
-              <Edit3 size={18} />
-              Đổi tên Nghệ Sĩ
-            </Button>
+            <div className="flex gap-2 w-full">
+              <Button
+                type="button"
+                onClick={() => setIsEditing(true)}
+                className="flex-1 gap-2 btn-gradient-primary cursor-pointer"
+              >
+                <Edit3 size={18} />
+                Đổi tên Nghệ Sĩ
+              </Button>
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={() => setIsDeleteDialogOpen(true)}
+                className="gap-2 cursor-pointer bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/20 px-3"
+              >
+                <Trash2 size={18} />
+              </Button>
+            </div>
           ) : (
             <div className="flex flex-wrap gap-2 w-full">
               <Button
@@ -170,6 +240,36 @@ export const ArtistEditForm: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="text-red-500">
+              <AlertTriangle size={18} />
+              Xoá Nghệ Sĩ
+            </DialogTitle>
+            <DialogDescription className="space-y-2">
+              <p>Bạn có chắc chắn muốn xoá Nghệ Sĩ <strong className="text-white">{selectedEntityName}</strong> này? Thao tác này sẽ gỡ tên nghệ sĩ khỏi tất cả các bài hát mà nghệ sĩ này tham gia.</p>
+              <p className="text-yellow-500/90 bg-yellow-500/10 p-2 rounded border border-yellow-500/20">
+                Lưu ý: Đối với các bài hát có nhiều nghệ sĩ nối bằng ký tự lạ (như A x B), việc gỡ một nghệ sĩ có thể để lại khoảng trắng dư thừa do hạn chế về thuật toán phân tích chuỗi.
+              </p>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="secondary" onClick={() => setIsDeleteDialogOpen(false)} className="cursor-pointer">
+              Huỷ
+            </Button>
+            <HoldButton 
+              onHold={handleDeleteArtist} 
+              holdDuration={3000} 
+              className="btn-gradient-destructive cursor-pointer"
+            >
+              Đồng ý xoá
+            </HoldButton>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Form>
   );
 };

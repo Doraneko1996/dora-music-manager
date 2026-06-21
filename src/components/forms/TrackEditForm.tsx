@@ -6,7 +6,7 @@ import { Label } from '../ui/label';
 import { Button } from '../ui/button';
 import { Form, FormControl, FormField, FormItem } from '../ui/form';
 import { Music, Save, X, Edit3, Trash2, FileText, Disc3, Tag, Lock, Unlock } from 'lucide-react';
-import { invoke } from '@tauri-apps/api/core';
+import { invoke, convertFileSrc } from '@tauri-apps/api/core';
 import { cn } from '../../lib/utils';
 import { calculateCommonMetadata, FormValues } from '../../lib/metadataUtils';
 import { CoverArtUploader } from '../CoverArtUploader';
@@ -32,7 +32,8 @@ export const TrackEditForm: React.FC = () => {
     musicFiles, selectedFiles, setSelectedFiles, clearMetadata,
     setPendingMetadata, setPendingArtworkPath,
     setCurrentArtworkBase64, saveChanges,
-    isEditing, setIsEditing, lockedFiles, toggleLock
+    isEditing, setIsEditing, lockedFiles, toggleLock,
+    directoryPath
   } = useAudioStore();
 
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
@@ -72,6 +73,28 @@ export const TrackEditForm: React.FC = () => {
       setCurrentArtworkBase64(null);
     }
   }, [selectedFiles, musicFiles, reset, setPendingArtworkPath, setPendingMetadata, setCurrentArtworkBase64]);
+
+  const currentAlbum = watch('album');
+
+  // Tự động set ảnh cover nếu chọn album có sẵn ảnh
+  useEffect(() => {
+    if (isEditing && currentAlbum) {
+      const { aggregatedData, pendingArtworkPath } = useAudioStore.getState();
+      const albumInfo = aggregatedData?.albums.find(a => a.album_name === currentAlbum);
+
+      if (albumInfo && albumInfo.cover_path) {
+        const separator = directoryPath.includes('\\') ? '\\' : '/';
+        const absolutePath = `${directoryPath}${separator}${albumInfo.cover_path}`;
+
+        // Tránh loop hoặc ghi đè nếu người dùng đã chủ động chọn file mới
+        if (pendingArtworkPath !== absolutePath && !pendingArtworkPath?.startsWith('blob:')) {
+          const coverUrl = convertFileSrc(absolutePath);
+          setCurrentArtworkBase64(coverUrl);
+          setPendingArtworkPath(absolutePath);
+        }
+      }
+    }
+  }, [currentAlbum, isEditing, directoryPath, setCurrentArtworkBase64, setPendingArtworkPath]);
 
   // Đồng bộ giá trị form lên Zustand store khi người dùng nhập liệu
   useEffect(() => {

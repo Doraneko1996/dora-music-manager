@@ -6,17 +6,59 @@ import { Label } from '../ui/label';
 import { Button } from '../ui/button';
 import { Form, FormControl, FormField, FormItem } from '../ui/form';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
-import { Music, Save, X, Edit3 } from 'lucide-react';
+import { Music, Save, X, Edit3, Trash2, AlertTriangle } from 'lucide-react';
+import { invoke } from '@tauri-apps/api/core';
 import { cn } from '../../lib/utils';
 import { calculateCommonMetadata, FormValues } from '../../lib/metadataUtils';
 import { TrackList } from '../TrackList';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../ui/dialog';
+import { HoldButton } from '../ui/hold-button';
+import { toast } from 'sonner';
 
 export const GenreEditForm: React.FC = () => {
   const {
     musicFiles, selectedFiles,
     setPendingMetadata, saveChanges,
-    isEditing, setIsEditing, selectedEntityName
+    isEditing, setIsEditing, selectedEntityName, customGenres,
+    save_folder_meta, refreshData
   } = useAudioStore();
+
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
+
+  const handleDeleteGenre = async () => {
+    if (!selectedEntityName) return;
+    
+    const genreFiles = musicFiles.filter(f => f.genre === selectedEntityName);
+    
+    try {
+      if (genreFiles.length > 0) {
+        const updates = genreFiles.map(file => ({
+          file_path: file.file_path,
+          genre: "",
+          file_name: file.file_name || "",
+          has_cover: false
+        }));
+        
+        await invoke('update_metadata_batch', { updates });
+      }
+
+      const newCustomGenres = customGenres.filter(g => g !== selectedEntityName);
+      const { customArtists, customAlbums } = useAudioStore.getState();
+      await save_folder_meta(customArtists, customAlbums, newCustomGenres);
+      
+      setIsDeleteDialogOpen(false);
+      toast.success(`Đã xoá thể loại "${selectedEntityName}" khỏi hệ thống.`);
+      
+      const { setSelectedEntityName, setSelectedFiles } = useAudioStore.getState();
+      setSelectedEntityName(null);
+      setSelectedFiles([]);
+      await refreshData(true);
+      
+    } catch (e) {
+      console.error(e);
+      toast.error(`Lỗi khi xoá thể loại: ${e}`);
+    }
+  };
 
   const form = useForm<FormValues>({
     defaultValues: { title: '', artist: '', album: '', genre: '', year: '' }
@@ -139,14 +181,24 @@ export const GenreEditForm: React.FC = () => {
 
         <div className="pt-3 border-t border-white/5 shrink-0 flex flex-col gap-2">
           {!isEditing ? (
-            <Button
-              type="button"
-              onClick={() => setIsEditing(true)}
-              className="w-full gap-2 btn-gradient-primary cursor-pointer"
-            >
-              <Edit3 size={18} />
-              Đổi tên Thể Loại
-            </Button>
+            <div className="flex gap-2 w-full">
+              <Button
+                type="button"
+                onClick={() => setIsEditing(true)}
+                className="flex-1 gap-2 btn-gradient-primary cursor-pointer"
+              >
+                <Edit3 size={18} />
+                Đổi tên Thể Loại
+              </Button>
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={() => setIsDeleteDialogOpen(true)}
+                className="gap-2 cursor-pointer bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/20 px-3"
+              >
+                <Trash2 size={18} />
+              </Button>
+            </div>
           ) : (
             <div className="flex flex-wrap gap-2 w-full">
               <Button
@@ -170,6 +222,33 @@ export const GenreEditForm: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="text-red-500">
+              <AlertTriangle size={18} />
+              Xoá Thể Loại
+            </DialogTitle>
+            <DialogDescription>
+              Bạn có chắc chắn muốn xoá Thể Loại <strong className="text-white">{selectedEntityName}</strong> này? Thao tác này sẽ gỡ thể loại khỏi tất cả bài hát thuộc thể loại này.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="secondary" onClick={() => setIsDeleteDialogOpen(false)} className="cursor-pointer">
+              Huỷ
+            </Button>
+            <HoldButton 
+              onHold={handleDeleteGenre} 
+              holdDuration={3000} 
+              className="btn-gradient-destructive cursor-pointer"
+            >
+              Đồng ý xoá
+            </HoldButton>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Form>
   );
 };

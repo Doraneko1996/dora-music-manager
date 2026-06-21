@@ -147,9 +147,9 @@ export const Layout: React.FC = () => {
                     const basename = path.split(/[/\\]/).filter(Boolean).pop() || path;
 
                     return (
-                      <div key={path} className="flex items-center group relative w-full rounded-lg hover:bg-white/5 transition-colors p-1">
+                      <div key={path} className="flex items-center group relative w-full rounded-lg hover:bg-white/5 hover:bg-linear-to-r hover:from-indigo-500/0 hover:to-indigo-500/15 hover:text-white transition-all p-1">
                         <DropdownMenuItem
-                          className="flex-1 cursor-pointer truncate px-2 py-1.5 focus:bg-transparent data-highlighted:bg-transparent"
+                          className="flex-1 cursor-pointer truncate px-2 py-1.5 focus:bg-transparent focus:bg-none focus:from-transparent focus:to-transparent"
                           onClick={() => loadDirectory(path)}
                         >
                           <div className="flex flex-col overflow-hidden w-full">

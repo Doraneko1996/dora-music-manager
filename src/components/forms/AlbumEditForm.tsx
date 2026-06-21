@@ -5,20 +5,63 @@ import { Input } from '../ui/input';
 import { Button } from '../ui/button';
 import { Form, FormControl, FormField, FormItem } from '../ui/form';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
-import { Music, Save, X, Edit3 } from 'lucide-react';
+import { Music, Save, X, Edit3, Trash2, AlertTriangle } from 'lucide-react';
 import { invoke } from '@tauri-apps/api/core';
 import { convertFileSrc } from '@tauri-apps/api/core';
 import { cn } from '../../lib/utils';
 import { calculateCommonMetadata, FormValues } from '../../lib/metadataUtils';
 import { TrackList } from '../TrackList';
 import { CoverArtUploader } from '../CoverArtUploader';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../ui/dialog';
+import { HoldButton } from '../ui/hold-button';
+import { toast } from 'sonner';
 export const AlbumEditForm: React.FC = () => {
   const {
     musicFiles, selectedFiles,
     setPendingMetadata, setPendingArtworkPath,
     setCurrentArtworkBase64, saveChanges,
-    isEditing, setIsEditing, selectedEntityName, customAlbums, directoryPath
+    isEditing, setIsEditing, selectedEntityName, customAlbums, directoryPath,
+    save_folder_meta, refreshData
   } = useAudioStore();
+
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
+
+  const handleDeleteAlbum = async () => {
+    if (!selectedEntityName) return;
+    
+    const albumFiles = musicFiles.filter(f => f.album === selectedEntityName).map(f => f.file_path);
+    
+    try {
+      if (albumFiles.length > 0) {
+        await invoke('process_and_embed_artwork', { files: albumFiles, imagePath: "" });
+        
+        const updates = albumFiles.map(path => ({
+          file_path: path,
+          album: "",
+          file_name: musicFiles.find(f => f.file_path === path)?.file_name || "",
+          has_cover: false
+        }));
+        
+        await invoke('update_metadata_batch', { updates });
+      }
+
+      const newCustomAlbums = customAlbums.filter(a => a.album_name !== selectedEntityName);
+      const { customArtists, customGenres } = useAudioStore.getState();
+      await save_folder_meta(customArtists, newCustomAlbums, customGenres);
+      
+      setIsDeleteDialogOpen(false);
+      toast.success(`Đã xoá album "${selectedEntityName}" khỏi hệ thống.`);
+      
+      const { setSelectedEntityName, setSelectedFiles } = useAudioStore.getState();
+      setSelectedEntityName(null);
+      setSelectedFiles([]);
+      await refreshData(true);
+      
+    } catch (e) {
+      console.error(e);
+      toast.error(`Lỗi khi xoá album: ${e}`);
+    }
+  };
 
   const form = useForm<FormValues>({
     defaultValues: { title: '', artist: '', album: '', genre: '', year: '' }
@@ -177,14 +220,24 @@ export const AlbumEditForm: React.FC = () => {
 
         <div className="pt-3 border-t border-white/5 shrink-0 flex flex-col gap-2 mt-auto">
           {!isEditing ? (
-            <Button
-              type="button"
-              onClick={() => setIsEditing(true)}
-              className="w-full gap-2 btn-gradient-primary cursor-pointer"
-            >
-              <Edit3 size={18} />
-              Chỉnh sửa thông tin Album
-            </Button>
+            <div className="flex gap-2 w-full">
+              <Button
+                type="button"
+                onClick={() => setIsEditing(true)}
+                className="flex-1 gap-2 btn-gradient-primary cursor-pointer"
+              >
+                <Edit3 size={18} />
+                Chỉnh sửa Album
+              </Button>
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={() => setIsDeleteDialogOpen(true)}
+                className="gap-2 cursor-pointer bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/20 px-3"
+              >
+                <Trash2 size={18} />
+              </Button>
+            </div>
           ) : (
             <div className="flex flex-wrap gap-2 w-full">
               <Button
@@ -208,6 +261,33 @@ export const AlbumEditForm: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="text-red-500">
+              <AlertTriangle size={18} />
+              Xoá Album
+            </DialogTitle>
+            <DialogDescription>
+              Bạn có chắc chắn muốn xoá Album <strong className="text-white">{selectedEntityName}</strong> này? Thao tác này sẽ gỡ album và ảnh bìa khỏi tất cả bài hát thuộc album.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="secondary" onClick={() => setIsDeleteDialogOpen(false)} className="cursor-pointer">
+              Huỷ
+            </Button>
+            <HoldButton 
+              onHold={handleDeleteAlbum} 
+              holdDuration={3000} 
+              className="btn-gradient-destructive cursor-pointer"
+            >
+              Đồng ý xoá
+            </HoldButton>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Form>
   );
 };
