@@ -26,12 +26,18 @@ export const GenreEditForm: React.FC = () => {
 
   // Reset form khi thay đổi bài hát được chọn hoặc thay đổi Thể loại được chọn
   useEffect(() => {
-    if (selectedFiles.length > 0) {
-      const common = calculateCommonMetadata(selectedFiles, musicFiles);
-      
-      const defaultGenre = selectedEntityName || common.genre || '';
+    const common = calculateCommonMetadata(selectedFiles, musicFiles);
+    let defaultGenre = common.genre || '';
 
-      reset({ genre: defaultGenre });
+    if (selectedFiles.length === 0 && selectedEntityName) {
+      defaultGenre = selectedEntityName;
+    } else if (selectedEntityName) {
+      defaultGenre = selectedEntityName;
+    }
+
+    reset({ genre: defaultGenre });
+
+    if (selectedFiles.length > 0 || selectedEntityName) {
       setPendingMetadata({ genre: defaultGenre } as Partial<AudioMetadata>);
     } else {
       setPendingMetadata({});
@@ -72,7 +78,7 @@ export const GenreEditForm: React.FC = () => {
     }
   };
 
-  const isDisabled = selectedFiles.length === 0;
+  const isDisabled = selectedFiles.length === 0 && !selectedEntityName;
 
   if (isDisabled) {
     return (

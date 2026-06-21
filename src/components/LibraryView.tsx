@@ -65,7 +65,7 @@ export const LibraryView: React.FC = () => {
                 <Button
                   variant="outline"
                   size="icon"
-                  onClick={refreshData}
+                  onClick={() => refreshData()}
                   disabled={isScanning || !directoryPath}
                   className="h-9.5 w-9.5 bg-zinc-950/80 border-white/10 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/80 rounded-lg shadow-lg shadow-black/20"
                 >

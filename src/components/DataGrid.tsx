@@ -853,7 +853,7 @@ export const DataGrid: React.FC = () => {
       </div>
 
       <Dialog open={filesToDelete !== null} onOpenChange={(open) => !open && setFilesToDelete(null)}>
-        <DialogContent className="sm:max-w-100 bg-zinc-950 border border-white/10 text-white shadow-2xl shadow-black">
+        <DialogContent className="sm:max-w-100">
           <DialogHeader>
             <DialogTitle className="text-zinc-100 flex items-center gap-2 text-[17px]">
               <Trash2 className="text-red-500 w-5 h-5" />

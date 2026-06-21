@@ -7,6 +7,7 @@ import { Form, FormControl, FormField, FormItem } from '../ui/form';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
 import { Music, Save, X, Edit3 } from 'lucide-react';
 import { invoke } from '@tauri-apps/api/core';
+import { convertFileSrc } from '@tauri-apps/api/core';
 import { cn } from '../../lib/utils';
 import { calculateCommonMetadata, FormValues } from '../../lib/metadataUtils';
 import { TrackList } from '../TrackList';
@@ -16,7 +17,7 @@ export const AlbumEditForm: React.FC = () => {
     musicFiles, selectedFiles,
     setPendingMetadata, setPendingArtworkPath,
     setCurrentArtworkBase64, saveChanges,
-    isEditing, setIsEditing
+    isEditing, setIsEditing, selectedEntityName, customAlbums, directoryPath
   } = useAudioStore();
 
   const form = useForm<FormValues>({
@@ -28,10 +29,13 @@ export const AlbumEditForm: React.FC = () => {
   // Reset form khi thay đổi bài hát được chọn
   useEffect(() => {
     const common = calculateCommonMetadata(selectedFiles, musicFiles);
+    if (selectedFiles.length === 0 && selectedEntityName) {
+      common.album = selectedEntityName;
+    }
     reset(common);
     setPendingArtworkPath(null);
 
-    if (selectedFiles.length > 0) {
+    if (selectedFiles.length > 0 || selectedEntityName) {
       setPendingMetadata({ album: common.album } as Partial<AudioMetadata>);
     } else {
       setPendingMetadata({});
@@ -45,10 +49,19 @@ export const AlbumEditForm: React.FC = () => {
           console.error("Lỗi khi load ảnh:", err);
           setCurrentArtworkBase64(null);
         });
+    } else if (selectedEntityName) {
+      const customAlbum = customAlbums.find(a => a.album_name === selectedEntityName);
+      if (customAlbum && customAlbum.cover_path) {
+        const separator = directoryPath.includes('\\') ? '\\' : '/';
+        const coverUrl = convertFileSrc(`${directoryPath}${separator}${customAlbum.cover_path}`);
+        setCurrentArtworkBase64(coverUrl);
+      } else {
+        setCurrentArtworkBase64(null);
+      }
     } else {
       setCurrentArtworkBase64(null);
     }
-  }, [selectedFiles, musicFiles, reset, setPendingArtworkPath, setPendingMetadata, setCurrentArtworkBase64]);
+  }, [selectedFiles, musicFiles, reset, setPendingArtworkPath, setPendingMetadata, setCurrentArtworkBase64, selectedEntityName, customAlbums, directoryPath]);
 
   // Đồng bộ giá trị form lên Zustand store khi người dùng nhập liệu
   useEffect(() => {
@@ -73,15 +86,18 @@ export const AlbumEditForm: React.FC = () => {
     };
   }, [setIsEditing, setPendingMetadata, setPendingArtworkPath, setCurrentArtworkBase64]);
 
-  const isDisabled = selectedFiles.length === 0;
+  const isDisabled = selectedFiles.length === 0 && !selectedEntityName;
 
   const handleCancel = () => {
     const common = calculateCommonMetadata(selectedFiles, musicFiles);
+    if (selectedFiles.length === 0 && selectedEntityName) {
+      common.album = selectedEntityName;
+    }
     reset(common);
     setPendingArtworkPath(null);
     setIsEditing(false);
 
-    if (selectedFiles.length > 0) {
+    if (selectedFiles.length > 0 || selectedEntityName) {
       setPendingMetadata(common as unknown as Partial<AudioMetadata>);
     } else {
       setPendingMetadata({});
@@ -104,12 +120,12 @@ export const AlbumEditForm: React.FC = () => {
 
   return (
     <Form {...form}>
-      <div className="flex flex-col gap-6 w-full h-full min-h-0">
+      <div className="flex flex-col gap-4 w-full h-full min-h-0">
 
-        {/* Header (Title & Cover) - Max 35% viewport height */}
-        <div className="flex flex-col shrink-0 max-h-[35vh] min-h-0 w-full gap-2">
+        {/* Header (Title & Cover) */}
+        <div className="flex flex-col shrink-0 w-full gap-1">
           {/* Album Title */}
-          <div className="flex flex-col gap-1 text-center px-2 shrink-0 pt-2">
+          <div className="flex flex-col text-center px-2 shrink-0">
             <FormField
               control={control}
               name="album"
@@ -123,11 +139,11 @@ export const AlbumEditForm: React.FC = () => {
                             {...field}
                             id="album"
                             placeholder="Tên Album..."
-                            className={cn(inputClass, "text-2xl font-bold text-center h-auto py-2 truncate")}
+                            className={cn(inputClass, "text-lg font-bold text-center h-8 py-0 truncate")}
                           />
                         ) : (
                           <div
-                            className={cn(inputClass, "text-2xl font-bold text-center h-auto py-2 px-3 truncate w-full")}
+                            className={cn(inputClass, "text-lg font-bold text-center h-8 py-0 px-3 truncate w-full flex items-center justify-center")}
                           >
                             {field.value || "Chưa có tên Album"}
                           </div>
@@ -141,24 +157,25 @@ export const AlbumEditForm: React.FC = () => {
             />
           </div>
 
-          {/* Cover Art Section - Ưu tiên hiển thị lớn */}
-          <div className="flex-1 flex justify-center w-full items-center min-h-0 -mt-2">
+          {/* Cover Art Section */}
+          <div className="flex justify-center w-full mt-1 mb-1">
             <CoverArtUploader
               isEditing={isEditing}
               setIsEditing={setIsEditing}
-              maxSizeClassName="h-full max-h-[280px] !w-auto aspect-square shadow-2xl shadow-indigo-500/10"
+              maxSizeClassName="w-24 h-24 md:w-28 md:h-28 lg:w-32 lg:h-32 aspect-square shadow-2xl shadow-indigo-500/10"
             />
           </div>
         </div>
 
-        {/* TrackList Section - Có thể cuộn */}
-        <div className="flex flex-col gap-4 flex-1 min-h-[50%] shrink-0 overflow-y-auto custom-scrollbar pr-2 py-4 -my-4 mask-fade-y min-w-0">
+        {/* TrackList Section */}
+        <div className="flex flex-col flex-1 min-h-0 overflow-hidden pr-2 pb-2 mask-fade-y border-t border-white/5 pt-2">
           <TrackList
             files={musicFiles.filter(f => selectedFiles.includes(f.file_path))}
+            className="flex-1 flex flex-col min-h-0"
           />
         </div>
 
-        <div className="pt-3 border-t border-white/5 shrink-0 flex flex-col gap-2">
+        <div className="pt-3 border-t border-white/5 shrink-0 flex flex-col gap-2 mt-auto">
           {!isEditing ? (
             <Button
               type="button"

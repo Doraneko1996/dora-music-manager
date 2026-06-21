@@ -57,6 +57,16 @@ async fn move_to_trash(paths: Vec<String>) -> Result<(), String> {
     Ok(())
 }
 
+#[tauri::command]
+fn save_custom_album_cover(directory_path: String, album_name: String, source_path: String) -> Result<String, String> {
+    audio_meta::save_custom_album_cover_logic(&directory_path, &album_name, &source_path)
+}
+
+#[tauri::command]
+fn save_folder_meta(directory_path: String, artists: Vec<String>, albums: Vec<audio_meta::AlbumInfo>, genres: Vec<String>) -> Result<(), String> {
+    audio_meta::save_folder_meta_logic(&directory_path, artists, albums, genres)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -72,7 +82,9 @@ pub fn run() {
             process_and_embed_artwork,
             get_cover_art,
             convert_image_to_png,
-            move_to_trash
+            move_to_trash,
+            save_custom_album_cover,
+            save_folder_meta
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

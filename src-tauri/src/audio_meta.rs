@@ -43,10 +43,18 @@ pub struct AggregatedMetadata {
     pub genres: Vec<String>,
 }
 
+#[derive(Debug, Serialize, Deserialize, Default)]
+pub struct FolderMeta {
+    pub artists: Vec<String>,
+    pub albums: Vec<AlbumInfo>,
+    pub genres: Vec<String>,
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ScanResult {
     pub files: Vec<AudioMetadata>,
     pub aggregated: AggregatedMetadata,
+    pub folder_meta: FolderMeta,
 }
 
 /// Trích xuất metadata từ một file đơn lẻ
@@ -267,8 +275,29 @@ pub fn scan_and_extract(dir_path: &str) -> ScanResult {
     let mut genres: Vec<String> = genres_set.into_iter().collect();
     genres.sort_by_key(|g| g.to_lowercase());
 
+    // Đọc meta.json trước để bảo vệ cover của các Album rỗng khỏi bị xóa
+    let meta_json_path = dora_meta_dir.join("meta.json");
+    let folder_meta: FolderMeta = if meta_json_path.exists() {
+        if let Ok(content) = fs::read_to_string(&meta_json_path) {
+            serde_json::from_str(&content).unwrap_or_default()
+        } else {
+            FolderMeta::default()
+        }
+    } else {
+        let custom_entities_path = dora_meta_dir.join("custom_entities.json");
+        if custom_entities_path.exists() {
+            if let Ok(content) = fs::read_to_string(&custom_entities_path) {
+                serde_json::from_str(&content).unwrap_or_default()
+            } else {
+                FolderMeta::default()
+            }
+        } else {
+            FolderMeta::default()
+        }
+    };
+
     // Logic dọn rác ảnh bìa (Garbage Collection)
-    let active_covers: HashSet<String> = albums_map
+    let mut active_covers: HashSet<String> = albums_map
         .values()
         .filter_map(|opt| opt.as_ref())
         .filter_map(|path_str| {
@@ -277,6 +306,15 @@ pub fn scan_and_extract(dir_path: &str) -> ScanResult {
                 .map(|os_str| os_str.to_string_lossy().to_string())
         })
         .collect();
+
+    // Bổ sung các cover từ folder_meta vào active_covers
+    for album in &folder_meta.albums {
+        if let Some(cover_path) = &album.cover_path {
+            if let Some(file_name) = Path::new(cover_path).file_name() {
+                active_covers.insert(file_name.to_string_lossy().to_string());
+            }
+        }
+    }
 
     if let Ok(entries) = fs::read_dir(&covers_dir) {
         for entry in entries.filter_map(|e| e.ok()) {
@@ -311,15 +349,10 @@ pub fn scan_and_extract(dir_path: &str) -> ScanResult {
         genres,
     };
 
-    // Save to JSON
-    let json_path = dora_meta_dir.join("meta.json");
-    if let Ok(json_str) = serde_json::to_string_pretty(&aggregated) {
-        let _ = fs::write(json_path, json_str);
-    }
-
     ScanResult {
         files: files_result,
         aggregated,
+        folder_meta,
     }
 }
 
@@ -684,8 +717,71 @@ pub fn scan_specific_files_logic(dir_path: &str, file_paths: Vec<String>) -> Sca
         genres,
     };
 
+    let meta_json_path = dora_meta_dir.join("meta.json");
+    let folder_meta: FolderMeta = if meta_json_path.exists() {
+        if let Ok(content) = fs::read_to_string(&meta_json_path) {
+            serde_json::from_str(&content).unwrap_or_default()
+        } else {
+            FolderMeta::default()
+        }
+    } else {
+        let custom_entities_path = dora_meta_dir.join("custom_entities.json");
+        if custom_entities_path.exists() {
+            if let Ok(content) = fs::read_to_string(&custom_entities_path) {
+                serde_json::from_str(&content).unwrap_or_default()
+            } else {
+                FolderMeta::default()
+            }
+        } else {
+            FolderMeta::default()
+        }
+    };
+
     ScanResult {
         files: files_result,
         aggregated,
+        folder_meta,
     }
+}
+
+pub fn save_custom_album_cover_logic(directory_path: &str, album_name: &str, source_path: &str) -> Result<String, String> {
+    let sanitized_name = album_name.replace(|c: char| "<>:\"/\\|?*".contains(c), "_");
+    let file_name = format!("{}.png", sanitized_name);
+    
+    let covers_dir = Path::new(directory_path).join(".dora_metadata").join("covers");
+    if !covers_dir.exists() {
+        fs::create_dir_all(&covers_dir).map_err(|e| format!("Lỗi tạo thư mục covers: {}", e))?;
+    }
+    
+    let target_path = covers_dir.join(&file_name);
+    fs::copy(source_path, &target_path).map_err(|e| format!("Lỗi khi copy ảnh: {}", e))?;
+    
+    // Trả về relative_path
+    // Trên Windows cần đảm bảo dấu gạch chéo chuẩn web nếu muốn
+    let relative_path = format!(".dora_metadata/covers/{}", file_name);
+    Ok(relative_path)
+}
+
+pub fn save_folder_meta_logic(dir_path: &str, artists: Vec<String>, albums: Vec<AlbumInfo>, genres: Vec<String>) -> Result<(), String> {
+    let dora_meta_dir = Path::new(dir_path).join(".dora_metadata");
+    if !dora_meta_dir.exists() {
+        let _ = fs::create_dir_all(&dora_meta_dir);
+    }
+    
+    let meta_json_path = dora_meta_dir.join("meta.json");
+    let folder_meta = FolderMeta {
+        artists,
+        albums,
+        genres,
+    };
+    
+    let content = serde_json::to_string_pretty(&folder_meta).map_err(|e| format!("Failed to serialize meta.json: {}", e))?;
+    fs::write(&meta_json_path, content).map_err(|e| format!("Failed to write meta.json: {}", e))?;
+    
+    let custom_entities_path = dora_meta_dir.join("custom_entities.json");
+    if custom_entities_path.exists() {
+        let _ = fs::remove_file(&custom_entities_path);
+    }
+    
+    Ok(())
 }

@@ -26,12 +26,18 @@ export const ArtistEditForm: React.FC = () => {
   const { reset, watch } = form;
 
   useEffect(() => {
-    if (selectedFiles.length > 0) {
-      const common = calculateCommonMetadata(selectedFiles, musicFiles);
+    const common = calculateCommonMetadata(selectedFiles, musicFiles);
+    let defaultArtist = common.artist || '';
 
-      const defaultArtist = selectedEntityName || common.artist || '';
+    if (selectedFiles.length === 0 && selectedEntityName) {
+      defaultArtist = selectedEntityName;
+    } else if (selectedEntityName) {
+      defaultArtist = selectedEntityName;
+    }
 
-      reset({ artist: defaultArtist });
+    reset({ artist: defaultArtist });
+
+    if (selectedFiles.length > 0 || selectedEntityName) {
       setPendingMetadata({ artist: defaultArtist } as Partial<AudioMetadata>);
     } else {
       setPendingMetadata({});
@@ -72,7 +78,7 @@ export const ArtistEditForm: React.FC = () => {
     }
   };
 
-  const isDisabled = selectedFiles.length === 0;
+  const isDisabled = selectedFiles.length === 0 && !selectedEntityName;
 
   if (isDisabled) {
     return (

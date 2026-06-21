@@ -205,7 +205,7 @@ export const TrackEditForm: React.FC = () => {
                 Xoá Metadata
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-106.25 bg-zinc-950 border border-white/10 text-white shadow-2xl shadow-black">
+            <DialogContent className="sm:max-w-106.25">
               <DialogHeader>
                 <DialogTitle className="text-zinc-100 flex items-center gap-2 text-[17px]">
                   <Trash2 className="text-red-400 w-5 h-5" />
@@ -235,7 +235,7 @@ export const TrackEditForm: React.FC = () => {
                 Đổi Album
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-100 bg-zinc-950 border border-white/10 text-white shadow-2xl shadow-black">
+            <DialogContent className="sm:max-w-100">
               <DialogHeader>
                 <DialogTitle className="text-zinc-100 flex items-center gap-2 text-[17px]">
                   <Disc3 className="text-indigo-400 w-5 h-5" />
@@ -251,6 +251,7 @@ export const TrackEditForm: React.FC = () => {
                   value={bulkAlbumValue}
                   onChange={setBulkAlbumValue}
                   isEditing={true}
+                  usePortal={false}
                 />
               </div>
 
@@ -270,7 +271,7 @@ export const TrackEditForm: React.FC = () => {
                 Đổi Thể Loại
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-100 bg-zinc-950 border border-white/10 text-white shadow-2xl shadow-black">
+            <DialogContent className="sm:max-w-100">
               <DialogHeader>
                 <DialogTitle className="text-zinc-100 flex items-center gap-2 text-[17px]">
                   <Tag className="text-fuchsia-400 w-5 h-5" />
@@ -286,6 +287,7 @@ export const TrackEditForm: React.FC = () => {
                   value={bulkGenreValue}
                   onChange={setBulkGenreValue}
                   isEditing={true}
+                  usePortal={false}
                 />
               </div>
 
@@ -506,7 +508,7 @@ export const TrackEditForm: React.FC = () => {
         </div>
 
         <Dialog open={isConfirmOpen} onOpenChange={setIsConfirmOpen}>
-          <DialogContent className="sm:max-w-100 bg-zinc-950 border border-white/10 text-white shadow-2xl shadow-black">
+          <DialogContent className="sm:max-w-100">
             <DialogHeader>
               <DialogTitle className="text-zinc-100 flex items-center gap-2 text-[17px]">
                 <Trash2 className="text-red-400 w-5 h-5" />

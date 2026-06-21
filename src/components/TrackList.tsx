@@ -70,61 +70,67 @@ export const TrackList: React.FC<TrackListProps> = ({ files, selectedEntityName,
         </div>
 
         <div className="flex-1 overflow-y-auto custom-scrollbar border border-white/5 rounded-xl bg-black/20 p-2 shadow-inner">
-          <div className="flex flex-col gap-1 w-full">
-            {files.map((f, i) => {
-              const displayName = f.title || f.file_name;
-              const { mainArtist, featArtist } = parseArtist(f.artist);
-              const isLocked = lockedFiles.includes(f.file_path);
+          {files.length === 0 ? (
+            <div className="h-full min-h-25 flex items-center justify-center text-zinc-500 text-sm">
+              Chưa có bài hát
+            </div>
+          ) : (
+            <div className="flex flex-col gap-1 w-full">
+              {files.map((f, i) => {
+                const displayName = f.title || f.file_name;
+                const { mainArtist, featArtist } = parseArtist(f.artist);
+                const isLocked = lockedFiles.includes(f.file_path);
 
-              return (
-                <div key={f.file_path} className={`flex items-center gap-3 px-3 py-2.5 rounded-lg group transition-all duration-300 cursor-default relative overflow-hidden w-full min-w-0 ${isLocked ? 'opacity-75 bg-[repeating-linear-gradient(45deg,transparent,transparent_10px,rgba(245,158,11,0.04)_10px,rgba(245,158,11,0.04)_20px)] border border-amber-500/10' : 'row-hover-bg border border-transparent'}`}>
-                  <div className="row-gradient-overlay" />
+                return (
+                  <div key={f.file_path} className={`flex items-center gap-3 px-3 py-2.5 rounded-lg group transition-all duration-300 cursor-default relative overflow-hidden w-full min-w-0 ${isLocked ? 'opacity-75 bg-[repeating-linear-gradient(45deg,transparent,transparent_10px,rgba(245,158,11,0.04)_10px,rgba(245,158,11,0.04)_20px)] border border-amber-500/10' : 'row-hover-bg border border-transparent'}`}>
+                    <div className="row-gradient-overlay" />
 
-                  <div className="relative flex items-center justify-center w-5 shrink-0">
-                    {isLocked ? (
-                      <div data-custom-tooltip="Bài hát khoá chỉnh sửa" className="flex items-center justify-center w-full h-full">
-                        <Lock size={14} className="text-amber-500 shrink-0" strokeWidth={2.5} />
+                    <div className="relative flex items-center justify-center w-5 shrink-0">
+                      {isLocked ? (
+                        <div data-custom-tooltip="Bài hát khoá chỉnh sửa" className="flex items-center justify-center w-full h-full">
+                          <Lock size={14} className="text-amber-500 shrink-0" strokeWidth={2.5} />
+                        </div>
+                      ) : (
+                        <>
+                          <span className="text-xs font-semibold text-zinc-400 group-hover:hidden transition-all">{i + 1}</span>
+                          <Music2 size={14} className="text-indigo-400 hidden group-hover:block transition-all animate-pulse" />
+                        </>
+                      )}
+                    </div>
+
+                    <div className="flex flex-col flex-1 min-w-0 z-10">
+                      <TruncatedTooltip
+                        text={displayName}
+                        fullText={displayName}
+                        className={`text-sm font-medium truncate transition-colors ${isLocked ? 'text-zinc-400' : 'text-zinc-200 group-hover:text-indigo-300'}`}
+                      />
+                      <TruncatedTooltip
+                        text={highlightArtist(f.artist || 'Unknown')}
+                        fullText={highlightArtist(f.artist || 'Unknown')}
+                        className={`text-[11px] truncate mt-0.5 ${isLocked ? 'text-zinc-600' : 'text-zinc-500'}`}
+                      />
+                    </div>
+
+                    {featArtist && (
+                      <div className="z-10 shrink-0 ml-2">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded border border-yellow-500/30 text-yellow-500 bg-yellow-500/10 cursor-help">
+                              Ft.
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent side="top">
+                            <p className="text-sm font-semibold text-zinc-100">{highlightArtist(mainArtist)}</p>
+                            <p className="text-xs text-zinc-400 mt-0.5">Ft. {highlightArtist(featArtist)}</p>
+                          </TooltipContent>
+                        </Tooltip>
                       </div>
-                    ) : (
-                      <>
-                        <span className="text-xs font-semibold text-zinc-400 group-hover:hidden transition-all">{i + 1}</span>
-                        <Music2 size={14} className="text-indigo-400 hidden group-hover:block transition-all animate-pulse" />
-                      </>
                     )}
                   </div>
-
-                  <div className="flex flex-col flex-1 min-w-0 z-10">
-                    <TruncatedTooltip
-                      text={displayName}
-                      fullText={displayName}
-                      className={`text-sm font-medium truncate transition-colors ${isLocked ? 'text-zinc-400' : 'text-zinc-200 group-hover:text-indigo-300'}`}
-                    />
-                    <TruncatedTooltip
-                      text={highlightArtist(f.artist || 'Unknown')}
-                      fullText={highlightArtist(f.artist || 'Unknown')}
-                      className={`text-[11px] truncate mt-0.5 ${isLocked ? 'text-zinc-600' : 'text-zinc-500'}`}
-                    />
-                  </div>
-
-                  {featArtist && (
-                    <div className="z-10 shrink-0 ml-2">
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded border border-yellow-500/30 text-yellow-500 bg-yellow-500/10 cursor-help">
-                            Ft.
-                          </span>
-                        </TooltipTrigger>
-                        <TooltipContent side="top">
-                          <p className="text-sm font-semibold text-zinc-100">{highlightArtist(mainArtist)}</p>
-                          <p className="text-xs text-zinc-400 mt-0.5">Ft. {highlightArtist(featArtist)}</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
     </TooltipProvider>

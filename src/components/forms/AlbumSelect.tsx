@@ -15,10 +15,11 @@ interface AlbumSelectProps {
   onChange: (value: string) => void;
   isEditing: boolean;
   className?: string;
+  usePortal?: boolean;
 }
 
-export const AlbumSelect: React.FC<AlbumSelectProps> = ({ value, onChange, isEditing, className }) => {
-  const { aggregatedData, directoryPath } = useAudioStore();
+export const AlbumSelect: React.FC<AlbumSelectProps> = ({ value, onChange, isEditing, className, usePortal = true }) => {
+  const { aggregatedData, directoryPath, addCustomAlbum } = useAudioStore();
   const [open, setOpen] = useState(false);
   const [searchValue, setSearchValue] = useState("");
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);
@@ -34,6 +35,7 @@ export const AlbumSelect: React.FC<AlbumSelectProps> = ({ value, onChange, isEdi
   };
 
   const confirmCreate = () => {
+    addCustomAlbum(pendingNewAlbum);
     onChange(pendingNewAlbum);
     setConfirmModalOpen(false);
     setOpen(false);
@@ -74,7 +76,7 @@ export const AlbumSelect: React.FC<AlbumSelectProps> = ({ value, onChange, isEdi
             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent usePortal={false} align="start" className="min-w-60 w-(--radix-popover-trigger-width) p-1 border border-white/10 bg-black/70 backdrop-blur-2xl shadow-[0_0_40px_rgba(0,0,0,0.8)] rounded-xl">
+        <PopoverContent usePortal={usePortal} align="start" className="min-w-60 w-(--radix-popover-trigger-width) p-1 border border-white/10 bg-black/70 backdrop-blur-2xl shadow-[0_0_40px_rgba(0,0,0,0.8)] rounded-xl">
           <Command shouldFilter={false}>
             <CommandInput
               placeholder="Tìm hoặc thêm mới..."

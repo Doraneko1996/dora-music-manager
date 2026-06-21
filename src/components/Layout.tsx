@@ -27,7 +27,7 @@ export const Layout: React.FC = () => {
   const {
     musicFiles,
     directoryPath, setDirectoryPath,
-    setMusicFiles, setAggregatedData, isScanning, setIsScanning, isSyncing, resetStore,
+    setScanResult, isScanning, setIsScanning, isSyncing, resetStore,
     folderHistory, pinnedFolder, addFolderToHistory, togglePinFolder, removeFolderFromHistory
   } = useAudioStore();
 
@@ -40,8 +40,10 @@ export const Layout: React.FC = () => {
       const startTime = Date.now();
       
       const result: ScanResult = await invoke('scan_directory', { path });
-      setMusicFiles(result.files);
-      setAggregatedData(result.aggregated);
+      setScanResult(result);
+      if (result.files.length === 0) {
+        toast.info("Không tìm thấy file nhạc nào trong thư mục này.");
+      }
       addFolderToHistory(path);
 
       const elapsedTime = Date.now() - startTime;

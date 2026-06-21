@@ -15,6 +15,7 @@ interface ArtistSelectProps {
   onChange: (value: string) => void;
   isEditing: boolean;
   className?: string;
+  usePortal?: boolean;
 }
 
 export function parseArtistString(artistStr: string) {
@@ -34,8 +35,8 @@ export function formatArtistString(mainArtist: string, featArtists: string[]) {
   return `${mainArtist} Ft. ${featArtists.join(', ')}`;
 }
 
-export const ArtistSelect: React.FC<ArtistSelectProps> = ({ value, onChange, isEditing, className }) => {
-  const { aggregatedData } = useAudioStore();
+export const ArtistSelect: React.FC<ArtistSelectProps> = ({ value, onChange, isEditing, className, usePortal = true }) => {
+  const { aggregatedData, addCustomArtist } = useAudioStore();
   const allArtists = aggregatedData?.artists || [];
 
   const [parsed, setParsed] = useState(() => parseArtistString(value));
@@ -67,6 +68,7 @@ export const ArtistSelect: React.FC<ArtistSelectProps> = ({ value, onChange, isE
 
   const confirmCreate = () => {
     const { name, isFeat } = pendingNewArtist;
+    addCustomArtist(name); // Lưu dài hạn vào .dora_metadata
     if (isFeat) {
       if (!parsed.featArtists.includes(name)) {
         updateParent(parsed.mainArtist, [...parsed.featArtists, name]);
@@ -122,7 +124,7 @@ export const ArtistSelect: React.FC<ArtistSelectProps> = ({ value, onChange, isE
               <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
             </Button>
           </PopoverTrigger>
-          <PopoverContent usePortal={false} align="start" className="min-w-60 w-(--radix-popover-trigger-width) p-1 border border-white/10 bg-black/70 backdrop-blur-2xl shadow-[0_0_40px_rgba(0,0,0,0.8)] rounded-xl">
+          <PopoverContent usePortal={usePortal} align="start" className="min-w-60 w-(--radix-popover-trigger-width) p-1 border border-white/10 bg-black/70 backdrop-blur-2xl shadow-[0_0_40px_rgba(0,0,0,0.8)] rounded-xl">
             <Command shouldFilter={false}>
               <CommandInput
                 placeholder="Tìm hoặc thêm mới..."
@@ -217,7 +219,7 @@ export const ArtistSelect: React.FC<ArtistSelectProps> = ({ value, onChange, isE
               )}
             </div>
           </PopoverTrigger>
-          <PopoverContent usePortal={false} align="start" className="min-w-60 w-(--radix-popover-trigger-width) p-1 border border-white/10 bg-black/70 backdrop-blur-2xl shadow-2xl rounded-xl">
+          <PopoverContent usePortal={usePortal} align="start" className="min-w-60 w-(--radix-popover-trigger-width) p-1 border border-white/10 bg-black/70 backdrop-blur-2xl shadow-[0_0_40px_rgba(0,0,0,0.8)] rounded-xl">
             <Command shouldFilter={false}>
               <CommandInput
                 placeholder="Tìm hoặc thêm mới..."
