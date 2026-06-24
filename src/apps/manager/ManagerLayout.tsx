@@ -139,13 +139,13 @@ export const ManagerLayout: React.FC = () => {
             <DropdownMenuContent align="start" className="w-56">
               <DropdownMenuLabel>Chuyển đổi chế độ</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => setMode('manager')} className="flex items-center justify-between">
+              <DropdownMenuItem onClick={() => setMode('manager')} className="flex items-center justify-between cursor-pointer">
                 <span className="flex items-center gap-2"><ListMusic size={14}/> Quản lý thư viện</span>
-                {mode === 'manager' && <div className="w-2 h-2 rounded-full bg-indigo-500" />}
+                {mode === 'manager' && <div className="w-2 h-2 rounded-full bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.5)]" />}
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setMode('downloader')} className="flex items-center justify-between">
+              <DropdownMenuItem onClick={() => setMode('downloader')} className="flex items-center justify-between cursor-pointer focus:from-rose-500/0 focus:to-rose-500/15">
                 <span className="flex items-center gap-2"><Download size={14}/> Tải nhạc mới</span>
-                {mode === 'downloader' && <div className="w-2 h-2 rounded-full bg-indigo-500" />}
+                {mode === 'downloader' && <div className="w-2 h-2 rounded-full bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.5)]" />}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

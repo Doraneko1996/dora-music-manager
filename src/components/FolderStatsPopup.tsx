@@ -4,17 +4,53 @@ import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from './ui/t
 import { FolderOpen, X, Music2, Disc3, Users, Tags, FileAudio } from 'lucide-react';
 import { AudioMetadata } from '../store/useAudioStore';
 
+export type AppTheme = 'manager' | 'downloader';
+
 interface FolderStatsPopupProps {
   directoryPath: string;
   musicFiles: AudioMetadata[];
   handleCloseFolder: () => void;
+  theme?: AppTheme;
 }
 
-export const FolderStatsPopup: React.FC<FolderStatsPopupProps> = ({ directoryPath, musicFiles, handleCloseFolder }) => {
+const THEME_STYLES = {
+  manager: {
+    containerActive: 'bg-indigo-500/20 border-indigo-500/50 shadow-[0_0_20px_rgba(99,102,241,0.3)]',
+    containerInactive: 'bg-zinc-900/80 border-white/10 hover:bg-indigo-500/10 hover:border-indigo-500/50 hover:shadow-[0_0_20px_rgba(99,102,241,0.25)]',
+    iconActive: 'text-indigo-400',
+    iconInactive: 'text-zinc-400 group-hover:text-indigo-400',
+    textActive: 'text-indigo-200',
+    textInactive: 'text-zinc-300 group-hover:text-indigo-200',
+    blurGlow: 'bg-indigo-500/20',
+    headerIcon: 'text-indigo-400',
+    pinPing: 'bg-indigo-400',
+    pinDot: 'bg-indigo-500',
+    statIcon: 'text-indigo-400/80',
+    gridIconHover: 'group-hover:text-indigo-400'
+  },
+  downloader: {
+    containerActive: 'bg-rose-500/20 border-rose-500/50 shadow-[0_0_20px_rgba(244,63,94,0.3)]',
+    containerInactive: 'bg-zinc-900/80 border-white/10 hover:bg-rose-500/10 hover:border-rose-500/50 hover:shadow-[0_0_20px_rgba(244,63,94,0.25)]',
+    iconActive: 'text-rose-400',
+    iconInactive: 'text-zinc-400 group-hover:text-rose-400',
+    textActive: 'text-rose-200',
+    textInactive: 'text-zinc-300 group-hover:text-rose-200',
+    blurGlow: 'bg-rose-500/20',
+    headerIcon: 'text-rose-400',
+    pinPing: 'bg-rose-400',
+    pinDot: 'bg-rose-500',
+    statIcon: 'text-rose-400/80',
+    gridIconHover: 'group-hover:text-rose-400'
+  }
+};
+
+export const FolderStatsPopup: React.FC<FolderStatsPopupProps> = ({ directoryPath, musicFiles, handleCloseFolder, theme = 'manager' }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isPinned, setIsPinned] = useState(false);
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const triggerRef = useRef<HTMLDivElement>(null);
+
+  const styles = THEME_STYLES[theme];
 
   const handleMouseEnter = () => {
     if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
@@ -116,12 +152,10 @@ export const FolderStatsPopup: React.FC<FolderStatsPopupProps> = ({ directoryPat
             onMouseLeave={handleMouseLeave}
             onClick={handleClick}
             className={`relative z-50 group flex items-center gap-2 px-4 py-1.5 rounded-full border transition-all duration-300 cursor-pointer backdrop-blur-3xl shadow-[0_0_20px_rgba(0,0,0,0.3)] 
-            ${isPinned || isOpen
-                ? 'bg-indigo-500/20 border-indigo-500/50 shadow-[0_0_20px_rgba(99,102,241,0.3)]'
-                : 'bg-zinc-900/80 border-white/10 hover:bg-indigo-500/10 hover:border-indigo-500/50 hover:shadow-[0_0_20px_rgba(99,102,241,0.25)]'}`}
+            ${isPinned || isOpen ? styles.containerActive : styles.containerInactive}`}
           >
-            <FolderOpen size={14} className={`transition-colors duration-300 ${isPinned || isOpen ? 'text-indigo-400' : 'text-zinc-400 group-hover:text-indigo-400'}`} />
-            <span className={`text-[13px] font-medium truncate max-w-62.5 transition-colors duration-300 ${isPinned || isOpen ? 'text-indigo-200' : 'text-zinc-300 group-hover:text-indigo-200'}`}>
+            <FolderOpen size={14} className={`transition-colors duration-300 ${isPinned || isOpen ? styles.iconActive : styles.iconInactive}`} />
+            <span className={`text-[13px] font-medium truncate max-w-62.5 transition-colors duration-300 ${isPinned || isOpen ? styles.textActive : styles.textInactive}`}>
               {directoryPath}
             </span>
             <button
@@ -158,9 +192,9 @@ export const FolderStatsPopup: React.FC<FolderStatsPopupProps> = ({ directoryPat
         >
           {/* Header */}
           <div className="px-5 py-4 border-b border-white/5 bg-white/5 relative overflow-hidden">
-            <div className="absolute -right-4 -top-4 w-24 h-24 bg-indigo-500/20 blur-2xl rounded-full" />
+            <div className={`absolute -right-4 -top-4 w-24 h-24 blur-2xl rounded-full ${styles.blurGlow}`} />
             <h3 className="font-semibold text-sm text-zinc-100 flex items-center gap-2 relative z-10">
-              <FolderOpen size={16} className="text-indigo-400" />
+              <FolderOpen size={16} className={styles.headerIcon} />
               Thống kê thư mục
             </h3>
             <p className="text-[11px] text-zinc-400 mt-1 truncate relative z-10" title={directoryPath}>
@@ -170,8 +204,8 @@ export const FolderStatsPopup: React.FC<FolderStatsPopupProps> = ({ directoryPat
             {isPinned && (
               <div className="absolute top-4 right-4 flex items-center justify-center" title="Đã ghim (Pin)">
                 <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
+                  <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${styles.pinPing}`}></span>
+                  <span className={`relative inline-flex rounded-full h-2 w-2 ${styles.pinDot}`}></span>
                 </span>
               </div>
             )}
@@ -181,7 +215,7 @@ export const FolderStatsPopup: React.FC<FolderStatsPopupProps> = ({ directoryPat
             {/* Quality Distribution */}
             <div className="flex flex-col gap-2.5">
               <div className="flex items-center justify-between text-xs font-medium">
-                <span className="text-zinc-300 flex items-center gap-1.5"><Music2 size={13} className="text-indigo-400/80" /> Phân bổ chất lượng</span>
+                <span className="text-zinc-300 flex items-center gap-1.5"><Music2 size={13} className={styles.statIcon} /> Phân bổ chất lượng</span>
                 <span className="text-zinc-500 font-bold">{stats.total} Bài hát</span>
               </div>
 
@@ -238,7 +272,7 @@ export const FolderStatsPopup: React.FC<FolderStatsPopupProps> = ({ directoryPat
             {/* Formats Grid */}
             <div className="flex flex-col gap-2.5">
               <div className="text-xs font-medium text-zinc-300 flex items-center gap-1.5">
-                <FileAudio size={13} className="text-indigo-400/80" /> Định dạng file
+                <FileAudio size={13} className={styles.statIcon} /> Định dạng file
               </div>
               <div className="flex flex-wrap gap-2">
                 {stats.formats.map(([ext, count]) => {
@@ -260,17 +294,17 @@ export const FolderStatsPopup: React.FC<FolderStatsPopupProps> = ({ directoryPat
             {/* Metadata Stats */}
             <div className="grid grid-cols-3 gap-3 border-t border-white/5 pt-5">
               <div className="flex flex-col items-center justify-center bg-black/20 border border-white/5 rounded-xl p-2 gap-1 relative overflow-hidden group transition-colors shadow-inner">
-                <Users size={14} className="text-zinc-500 group-hover:text-indigo-400 transition-colors" />
+                <Users size={14} className={`text-zinc-500 transition-colors ${styles.gridIconHover}`} />
                 <span className="text-base font-bold text-zinc-100">{stats.artistsCount}</span>
                 <span className="text-[9px] uppercase tracking-wider text-zinc-500 font-semibold">Nghệ sĩ</span>
               </div>
               <div className="flex flex-col items-center justify-center bg-black/20 border border-white/5 rounded-xl p-2 gap-1 relative overflow-hidden group transition-colors shadow-inner">
-                <Disc3 size={14} className="text-zinc-500 group-hover:text-indigo-400 transition-colors" />
+                <Disc3 size={14} className={`text-zinc-500 transition-colors ${styles.gridIconHover}`} />
                 <span className="text-base font-bold text-zinc-100">{stats.albumsCount}</span>
                 <span className="text-[9px] uppercase tracking-wider text-zinc-500 font-semibold">Album</span>
               </div>
               <div className="flex flex-col items-center justify-center bg-black/20 border border-white/5 rounded-xl p-2 gap-1 relative overflow-hidden group transition-colors shadow-inner">
-                <Tags size={14} className="text-zinc-500 group-hover:text-indigo-400 transition-colors" />
+                <Tags size={14} className={`text-zinc-500 transition-colors ${styles.gridIconHover}`} />
                 <span className="text-base font-bold text-zinc-100">{stats.genresCount}</span>
                 <span className="text-[9px] uppercase tracking-wider text-zinc-500 font-semibold">Thể loại</span>
               </div>
@@ -281,3 +315,4 @@ export const FolderStatsPopup: React.FC<FolderStatsPopupProps> = ({ directoryPat
     </>
   );
 };
+

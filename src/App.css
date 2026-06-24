@@ -76,6 +76,10 @@
     @apply bg-linear-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold shadow-lg shadow-indigo-500/20 border-0 transition-all;
   }
 
+  .btn-gradient-downloader {
+    @apply bg-linear-to-r from-rose-500 to-orange-500 hover:from-rose-400 hover:to-orange-400 text-white font-bold shadow-[0_0_15px_rgba(244,63,94,0.3)] border-0 transition-all;
+  }
+
   .btn-gradient-primary {
     @apply bg-linear-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold shadow-lg shadow-blue-500/20 border-0 transition-all;
   }
