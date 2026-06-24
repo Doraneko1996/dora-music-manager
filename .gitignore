@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+/lucida-downloader-temp
+/scratch/lucida
+/scratch_lucida
