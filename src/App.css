@@ -125,3 +125,7 @@
 .custom-scrollbar::-webkit-scrollbar-corner {
   background: transparent;
 }
+
+.custom-scrollbar::-webkit-resizer {
+  background: transparent;
+}

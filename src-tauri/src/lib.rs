@@ -1,8 +1,12 @@
 mod audio_meta;
+mod downloader;
 use audio_meta::{
     convert_image_to_png_logic, update_metadata_batch_logic,
     update_metadata_logic, AudioMetadata, ScanResult,
 };
+use downloader::{check_engine_update, download_engine, start_download_music, get_local_engine_version, cancel_download, DownloadState};
+use std::sync::{Arc, Mutex};
+use std::collections::HashMap;
 
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #[tauri::command]
@@ -70,6 +74,7 @@ fn save_folder_meta(directory_path: String, artists: Vec<String>, albums: Vec<au
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .manage(DownloadState(Arc::new(Mutex::new(HashMap::new()))))
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
@@ -84,7 +89,12 @@ pub fn run() {
             convert_image_to_png,
             move_to_trash,
             save_custom_album_cover,
-            save_folder_meta
+            save_folder_meta,
+            check_engine_update,
+            download_engine,
+            start_download_music,
+            get_local_engine_version,
+            cancel_download
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

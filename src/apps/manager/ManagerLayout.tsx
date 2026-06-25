@@ -17,9 +17,7 @@ import { useAudioStore, ScanResult } from '../../store/useAudioStore';
 import { toast } from 'sonner';
 import { LibraryView } from '../../components/LibraryView';
 import { EditForm } from '../../components/EditForm';
-import { Toaster as CustomToaster } from '../../components/ui/sonner';
 import { FolderStatsPopup } from '../../components/FolderStatsPopup';
-import { useFileSystemWatcher } from '../../hooks/useFileSystemWatcher';
 import { LockOverlay } from '../../components/ui/lock-overlay';
 import { GlobalTooltip } from '../../components/GlobalTooltip';
 import { useAppStore } from '../../store/useAppStore';
@@ -75,8 +73,6 @@ export const ManagerLayout: React.FC = () => {
       loadDirectory(pinnedFolder, true);
     }
   }, [pinnedFolder, directoryPath]);
-
-  useFileSystemWatcher(directoryPath);
 
   const handleOpenFolder = async () => {
     try {
@@ -279,7 +275,6 @@ export const ManagerLayout: React.FC = () => {
           className="absolute inset-0 z-50 bg-black/40 backdrop-blur-[2px]"
         />
       </div>
-      <CustomToaster />
 
       {/* Sync Lock Overlay */}
       <LockOverlay
