@@ -566,15 +566,15 @@ pub fn process_and_embed_artwork_logic(files: Vec<String>, image_path: &str) -> 
         let img = image::open(image_path).map_err(|e| format!("Không thể mở ảnh: {}", e))?;
 
         let (width, height) = img.dimensions();
-        let size = width.min(height);
-        let x = (width - size) / 2;
-        let y = (height - size) / 2;
-
-        let cropped = img.crop_imm(x, y, size, size);
-        let resized = cropped.resize_exact(500, 500, image::imageops::FilterType::Lanczos3);
+        
+        let final_img = if width > 1000 || height > 1000 {
+            img.resize(1000, 1000, image::imageops::FilterType::Triangle)
+        } else {
+            img
+        };
 
         let mut png_data = Cursor::new(Vec::new());
-        resized
+        final_img
             .write_to(&mut png_data, image::ImageFormat::Png)
             .map_err(|e| e.to_string())?;
         let png_bytes = png_data.into_inner();
@@ -754,7 +754,16 @@ pub fn save_custom_album_cover_logic(directory_path: &str, album_name: &str, sou
     }
     
     let target_path = covers_dir.join(&file_name);
-    fs::copy(source_path, &target_path).map_err(|e| format!("Lỗi khi copy ảnh: {}", e))?;
+    
+    let img = image::open(source_path).map_err(|e| format!("Không thể mở ảnh: {}", e))?;
+    let (width, height) = img.dimensions();
+    
+    if width > 1000 || height > 1000 {
+        let resized = img.resize(1000, 1000, image::imageops::FilterType::Triangle);
+        resized.save_with_format(&target_path, image::ImageFormat::Png).map_err(|e| format!("Lỗi khi lưu ảnh: {}", e))?;
+    } else {
+        img.save_with_format(&target_path, image::ImageFormat::Png).map_err(|e| format!("Lỗi khi lưu ảnh: {}", e))?;
+    }
     
     // Trả về relative_path
     // Trên Windows cần đảm bảo dấu gạch chéo chuẩn web nếu muốn
